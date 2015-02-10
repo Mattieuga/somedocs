@@ -1,0 +1,3960 @@
+# Objects
+
+## The PFObject
+
+Storing data on Parse is built around the `PFObject`. Each `PFObject` contains key-value pairs of JSON-compatible data. This data is schemaless, which means that you don't need to specify ahead of time what keys exist on each `PFObject`. You simply set whatever key-value pairs you want, and our backend will store it.
+
+For example, let's say you're tracking high scores for a game. A single `PFObject` could contain:
+
+```js
+score: 1337, playerName: "Sean Plott", cheatMode: false
+```
+
+Keys must be alphanumeric strings. Values can be strings, numbers, booleans, or even arrays and dictionaries - anything that can be JSON-encoded.
+
+Each `PFObject` has a class name that you can use to distinguish different sorts of data. For example, we could call the high score object a `GameScore`. We recommend that you NameYourClassesLikeThis and nameYourKeysLikeThis, just to keep your code looking pretty.
+
+## Saving Objects
+
+Let's say you want to save the `GameScore` described above to the Parse Cloud. The interface is similar to a `NSMutableDictionary`, plus the `saveInBackground` method:
+
+```objc
+PFObject *gameScore = [PFObject objectWithClassName:@"GameScore"];
+gameScore[@"score"] = @1337;
+gameScore[@"playerName"] = @"Sean Plott";
+gameScore[@"cheatMode"] = @NO;
+[gameScore saveInBackgroundWithBlock:^(BOOL succeeded, NSError *error) {
+  if (succeeded) {
+    // The object has been saved.
+  } else {
+    // There was a problem, check error.description
+  }
+}];
+```
+```swift
+var gameScore = PFObject(className:"GameScore")
+gameScore["score"] = 1337
+gameScore["playerName"] = "Sean Plott"
+gameScore["cheatMode"] = false
+gameScore.saveInBackgroundWithBlock {
+  (success: Bool, error: NSError!) -> Void in
+  if (success) {
+    // The object has been saved.
+  } else {
+    // There was a problem, check error.description
+  }
+}
+```
+
+After this code runs, you will probably be wondering if anything really happened. To make sure the data was saved, you can look at the Data Browser in your app on Parse. You should see something like this:
+
+```js
+objectId: "xWMyZ4YEGZ", score: 1337, playerName: "Sean Plott", cheatMode: false,
+createdAt:"2011-06-10T18:33:42Z", updatedAt:"2011-06-10T18:33:42Z"
+```
+
+There are two things to note here. You didn't have to configure or set up a new Class called `GameScore` before running this code. Your Parse app lazily creates this Class for you when it first encounters it.
+
+There are also a few fields you don't need to specify that are provided as a convenience. `objectId` is a unique identifier for each saved object. `createdAt` and `updatedAt` represent the time that each object was created and last modified in the Parse Cloud. Each of these fields is filled in by Parse, so they don't exist on a `PFObject` until a save operation has completed.
+
+Note: You can use the `saveInBackgroundWithBlock` or `saveInBackgroundWithTarget:selector:` methods to provide additional logic which will run after the save completes.
+
+## Retrieving Objects
+
+Saving data to the cloud is fun, but it's even more fun to get that data out again. If you have the `objectId`, you can retrieve the whole `PFObject` using a `PFQuery`.  This is an asynchronous method, with variations for using either blocks or callback methods:
+
+```objc
+PFQuery *query = [PFQuery queryWithClassName:@"GameScore"];
+[query getObjectInBackgroundWithId:@"xWMyZ4YEGZ" block:^(PFObject *gameScore, NSError *error) {
+    // Do something with the returned PFObject in the gameScore variable.
+    NSLog(@"%@", gameScore);
+}];
+// The InBackground methods are asynchronous, so any code after this will run
+// immediately.  Any code that depends on the query result should be moved
+// inside the completion block above.
+```
+```swift
+var query = PFQuery(className:"GameScore")
+query.getObjectInBackgroundWithId("xWMyZEGZ") {
+  (gameScore: PFObject!, error: NSError!) -> Void in
+  if error == nil {
+    NSLog("%@", gameScore)
+  } else {
+    NSLog("%@", error)
+  }
+}
+```
+
+To get the values out of the `PFObject`, you can use either the `objectForKey:` method or the `[]` subscripting operator:
+
+```objc
+int score = [[gameScore objectForKey:@"score"] intValue];
+NSString *playerName = gameScore[@"playerName"];
+BOOL cheatMode = [gameScore[@"cheatMode"] boolValue];
+```
+```swift
+let score = gameScore["score"] as Int
+let playerName = gameScore["playerName"] as String
+let cheatMode = gameScore["cheatMode"] as Bool
+```
+
+The three special values are provided as properties:
+
+```objc
+NSString *objectId = gameScore.objectId;
+NSDate *updatedAt = gameScore.updatedAt;
+NSDate *createdAt = gameScore.createdAt;
+```
+```swift
+let objectId = gameScore.objectId
+let updatedAt = gameScore.updatedAt
+let createdAt = gameScore.createdAt
+```
+
+If you need to refresh an object you already have with the latest data that
+    is in the Parse Cloud, you can call the `refresh` method like so:
+
+```objc
+[myObject refresh];
+```
+```swift
+myObject.refresh()
+```
+
+## The Local Datastore
+
+Parse also lets you store objects in a [local datastore](#localdatastore) on the device itself. You can use this for data that doesn't need to be saved to the cloud, but this is especially useful for temporarily storing data so that it can be synced later. To enable the datastore, add `libsqlite3.dylib` and call `[Parse enableLocalDatastore]` in your `AppDelegate` `application:didFinishLaunchWithOptions:` before calling `[Parse setApplicationId:clientKey:]`. Once the local datastore is enabled, you can store an object by pinning it.
+
+```objc
+PFObject *gameScore = [PFObject objectWithClassName:@"GameScore"];
+gameScore[@"score"] = 1337;
+gameScore[@"playerName"] = @"Sean Plott";
+gameScore[@"cheatMode"] = @NO;
+[gameScore pinInBackground];
+```
+```swift
+let gameScore = PFObject(className:"GameScore")
+gameScore["score"] = 1337
+gameScore["playerName"] = "Sean Plott"
+gameScore["cheatMode"] = false
+gameScore.pinInBackground()
+```
+
+As with saving, this recursively stores every object and file that `gameScore` points to, if it has been fetched from the cloud. Whenever you save changes to the object, or fetch new changes from Parse, the copy in the datastore will be automatically updated, so you don't have to worry about it.
+
+### Retrieving Objects from the Local Datastore
+
+Storing an object is only useful if you can get it back out. To get the data for a specific object, you can use a `PFQuery` just like you would while on the network, but using the `fromLocalDatastore` method to tell it where to get the data.
+
+```objc
+PFQuery *query = [PFQuery queryWithClassName:@"GameScore"];
+[query fromLocalDatastore];
+[[query getObjectInBackgroundWithId:@"xWMyZ4YEGZ"] continueWithBlock:^id(BFTask *task) {
+  if (task.error) {
+    // something went wrong;
+    return task;
+  }
+
+  // task.result will be your game score
+  return task;
+}];
+```
+```swift
+let query = PFQuery(className:"GameScore")
+query.fromLocalDatastore()
+query.getObjectInBackgroundWithId("xWMyZ4YEGZ").continueWithBlock({ 
+  (task: BFTask!) -> AnyObject! in
+  if task.error != nil {
+      // There was an error.
+      return task
+  }
+
+  // task.result will be your game score
+  return task
+})
+```
+
+If you already have an instance of the object, you can instead use the `fetchFromLocalDatastoreInBackground` method.
+
+```objc
+PFObject *object = [PFObject objectWithoutDataWithClassName:@"GameScore" objectId:@"xWMyZ4YEGZ"];
+[[object fetchFromLocalDatastoreInBackground] continueWithBlock:^id(BFTask *task) {
+  if (task.error) {
+    // something went wrong
+    return task;
+  }
+
+  // task.result will be your game score
+  return task;
+}];
+```
+```swift
+let object = PFObject(withoutDataWithClassName:"GameScore" objectId:"xWMyZ4YEGZ")
+object.fetchFromLocalDatastoreInBackground().continueWithBlock({ 
+  (task: BFTask!) -> AnyObject! in
+  if task.error != nil {
+      // There was an error.
+      return task
+  }
+
+  // task.result will be your game score
+  return task
+})
+```
+
+### Unpinning Objects
+
+When you are done with the object and no longer need to keep it on the device, you can release it with `unpinInBackground`.
+
+```objc
+[gameScore unpinInBackground];
+```
+```swift
+gameScore.unpinInBackground()
+```
+
+## Saving Objects Offline
+
+Most save functions execute immediately, and inform your app when the save is complete. If you don't need to know when the save has finished, you can use `saveEventually` instead. The advantage is that if the user currently doesn't have a network connection, `saveEventually` will store the update on the device until a network connection is re-established. If your app is closed before the connection is back, Parse will try again the next time the app is opened. All calls to `saveEventually` (and `deleteEventually`) are executed in the order they are called, so it is safe to call `saveEventually` on an object multiple times.
+
+```objc
+// Create the object.
+PFObject *gameScore = [PFObject objectWithClassName:@"GameScore"];
+gameScore[@"score"] = @1337;
+gameScore[@"playerName"] = @"Sean Plott";
+gameScore[@"cheatMode"] = @NO;
+[gameScore saveEventually];
+```
+```swift
+var gameScore = PFObject(className:"GameScore")
+gameScore["score"] = 1337
+gameScore["playerName"] = "Sean Plott"
+gameScore["cheatMode"] = false
+gameScore.saveEventually()
+```
+
+## Updating Objects
+
+Updating an object is simple. Just set some new data on it and call one of the save methods. Assuming you have saved the object and have the `objectId`, you can retrieve the `PFObject` using a `PFQuery` and update its data:
+
+```objc
+PFQuery *query = [PFQuery queryWithClassName:@"GameScore"];
+
+// Retrieve the object by id
+[query getObjectInBackgroundWithId:@"xWMyZ4YEGZ" block:^(PFObject *gameScore, NSError *error) {
+
+    // Now let's update it with some new data. In this case, only cheatMode and score
+    // will get sent to the cloud. playerName hasn't changed.
+    gameScore[@"cheatMode"] = @YES;
+    gameScore[@"score"] = @1338;
+    [gameScore saveInBackground];
+
+}];
+```
+```swift
+var query = PFQuery(className:"GameScore")
+query.getObjectInBackgroundWithId("xWMyZEGZ") {
+  (gameScore: PFObject!, error: NSError!) -> Void in
+  if error != nil {
+    NSLog("%@", error)
+  } else {
+    gameScore["cheatMode"] = true
+    gameScore["score"] = 1338
+    gameScore.saveInBackground()
+  }
+}
+```
+
+The client automatically figures out which data has changed so only "dirty" fields will be sent to Parse. You don't need to worry about squashing data that you didn't intend to update.
+
+### Counters
+
+The above example contains a common use case. The "score" field is a counter that we'll need to continually update with the player's latest score. Using the above method works but it's cumbersome and can lead to problems if you have multiple clients trying to update the same counter.
+
+To help with storing counter-type data, Parse provides methods that atomically increment (or decrement) any number field. So, the same update can be rewritten as:
+
+```objc
+[gameScore incrementKey:@"score"];
+[gameScore saveInBackground];
+```
+```swift
+gameScore.incrementKey("score")
+gameScore.saveInBackground()
+```
+
+You can also increment by any amount using `incrementKey:byAmount:`.
+
+### Arrays
+
+To help with storing array data, there are three operations that can be used to atomically change an array field:
+
+*   `addObject:forKey:` and `addObjectsFromArray:forKey:` append the given objects to the end of an array field.
+*   `addUniqueObject:forKey:` and `addUniqueObjectsFromArray:forKey:` add only the given objects which aren't already contained in an array field to that field. The position of the insert is not guaranteed.
+*   `removeObject:forKey:` and `removeObjectsInArray:forKey:` remove all instances of each given object from an array field.
+
+For example, we can add items to the set-like "skills" field like so:
+
+```objc
+[gameScore addUniqueObjectsFromArray:@[@"flying", @"kungfu"] forKey:@"skills"];
+[gameScore saveInBackground];
+```
+```swift
+gameScore.addUniqueObjectsFromArray(["flying", "kungfu"], forKey:"skills")
+gameScore.saveInBackground()
+```
+
+Note that it is not currently possible to atomically add and remove items from an array in the same save.
+    You will have to call `save` in between every different kind of array operation.
+
+## Deleting Objects
+
+To delete an object from the cloud:
+
+```objc
+[gameScore deleteInBackground];
+```
+```swift
+gameScore.deleteInBackground()
+```
+
+If you want to run a callback when the delete is confirmed, you can use the `deleteInBackgroundWithBlock:` or `deleteInBackgroundWithTarget:selector:` methods. If you want to block the calling thread, you can use the `delete` method.
+
+You can delete a single field from an object with the `removeObjectForKey` method:
+
+```objc
+// After this, the playerName field will be empty
+[gameScore removeObjectForKey:@"playerName"];
+
+// Saves the field deletion to the Parse Cloud
+[gameScore saveInBackground];
+```
+```swift
+// After this, the playerName field will be empty
+gameScore.removeObjectForKey("playerName")
+
+// Saves the field deletion to the Parse Cloud
+gameScore.saveInBackground()
+```
+
+## Relational Data
+
+Objects can have relationships with other objects. To model this behavior, any `PFObject` can be used as a value in other `PFObject`s. Internally, the Parse framework will store the referred-to object in just one place, to maintain consistency.
+
+<div class="callout_green">
+  Watch the [One-To-Many Relationships](/tutorials/one-to-many-relationships) tutorial, where you'll learn how to create a one-to-many relationship between two `PFObjects` in a simple blogging application.
+</div>
+
+For example, each `Comment` in a blogging app might correspond to one `Post`. To create a new `Post` with a single `Comment`, you could write:
+
+```objc
+// Create the post
+PFObject *myPost = [PFObject objectWithClassName:@"Post"];
+myPost[@"title"] = @"I'm Hungry";
+myPost[@"content"] = @"Where should we go for lunch?";
+
+// Create the comment
+PFObject *myComment = [PFObject objectWithClassName:@"Comment"];
+myComment[@"content"] = @"Let's do Sushirrito.";
+
+// Add a relation between the Post and Comment
+myComment[@"parent"] = myPost;
+
+// This will save both myPost and myComment
+[myComment saveInBackground];
+```
+```swift
+// Create the post
+var myPost = PFObject(className:"Post")
+myPost["title"] = "I'm Hungry"
+myPost["content"] = "Where should we go for lunch?"
+
+// Create the comment
+var myComment = PFObject(className:"Comment")
+myComment["content"] = "Let's do Sushirrito."
+
+// Add a relation between the Post and Comment
+myComment["parent"] = myPost
+
+// This will save both myPost and myComment
+myComment.saveInBackground()
+```
+
+You can also link objects using just their `objectId`s like so:
+
+```objc
+// Add a relation between the Post with objectId "1zEcyElZ80" and the comment
+myComment[@"parent"] = [PFObject objectWithoutDataWithClassName:@"Post" objectId:@"1zEcyElZ80"];
+```
+```swift
+// Add a relation between the Post with objectId "1zEcyElZ80" and the comment
+myComment["parent"] = PFObject(withoutDataWithClassName:"Post", objectId:"1zEcyElZ80")
+```
+
+By default, when fetching an object, related `PFObject`s are not fetched.  These objects' values cannot be retrieved until they have been fetched like so:
+
+```objc
+PFObject *post = fetchedComment[@"parent"];
+[post fetchIfNeededInBackgroundWithBlock:^(PFObject *post, NSError *error) {
+  NSString *title = post[@"title"];
+  // do something with your title variable
+}];
+```
+```swift
+var post = myComment["parent"] as PFObject
+post.fetchIfNeededInBackgroundWithBlock {
+  (post: PFObject!, error: NSError!) -> Void in
+  let title = post["title"] as NSString
+  // do something with your title variable
+}
+```
+
+You can also model a many-to-many relation using the `PFRelation` object.  This works similar to an `NSArray` of `PFObjects`, except that you don't need to download all the Objects in a relation at once.  This allows `PFRelation` to scale to many more objects than the `NSArray` of `PFObject` approach.  For example, a `User` may have many `Post`s that they might like.  In this case, you can store the set of `Post`s that a `User` likes using `relationForKey:`.  In order to add a post to the list, the code would look something like:
+
+```objc
+PFUser *user = [PFUser currentUser];
+PFRelation *relation = [user relationForKey:@"likes"];
+[relation addObject:post];
+[user saveInBackground];
+```
+```swift
+var user = PFUser.currentUser()
+var relation = user.relationForKey("likes")
+relation.addObject(post)
+user.saveInBackground()
+```
+
+You can remove a post from the `PFRelation` with something like:
+
+```objc
+[relation removeObject:post];
+```
+```swift
+relation.removeObject(post)
+```
+
+By default, the list of objects in this relation are not downloaded.  You can get the list of `Post`s by using calling `findObjectsInBackgroundWithBlock:` on the `PFQuery` returned by `query`.  The code would look like:
+
+```objc
+[[relation query] findObjectsInBackgroundWithBlock:^(NSArray *objects, NSError *error) {
+  if (error) {
+     // There was an error
+  } else {
+    // objects has all the Posts the current user liked.
+  }
+}];
+```
+```swift
+relation.query().findObjectsInBackgroundWithBlock {
+  (objects: [AnyObject]!, error: NSError!) -> Void in
+  if error != nil {
+    // There was an error
+  } else {
+    // objects has all the Posts the current user liked.
+  }
+}
+```
+
+If you want only a subset of the `Post`s you can add extra constraints to the `PFQuery` returned by `query` like this:
+
+```objc
+PFQuery *query = [relation query];
+// Add other query constraints.
+```
+```swift
+var query = relation.query()
+// Add other query constraints.
+```
+
+For more details on `PFQuery` please look at the query portion of this guide.  A `PFRelation` behaves similar to an `NSArray` of `PFObject`, so any queries you can do on arrays of objects (other than `includeKey:`) you can do on `PFRelation`.
+
+## Data Types
+
+So far we've used values with type `NSString`, `NSNumber`, and `PFObject`. Parse also supports `NSDate`, `NSData`, and `NSNull`.
+
+You can nest `NSDictionary` and `NSArray` objects to store more structured data within a single `PFObject`.
+
+Some examples:
+
+```objc
+NSNumber *number = @42;
+NSString *string = [NSString stringWithFormat:@"the number is %@", number];
+NSDate *date = [NSDate date];
+NSData *data = [@"foo" dataUsingEncoding:NSUTF8StringEncoding];
+NSArray *array = @[string, number];
+NSDictionary *dictionary = @{@"number": number,      @"string": string};
+NSNull *null = [NSNull null];
+
+PFObject *bigObject = [PFObject objectWithClassName:@"BigObject"];
+bigObject[@"myNumber"] = number;
+bigObject[@"myString"] = string;
+bigObject[@"myDate"] = date;
+bigObject[@"myData"] = data;
+bigObject[@"myArray"] = array;
+bigObject[@"myDictionary"] = dictionary;
+bigObject[@"myNull"] = null;
+[bigObject saveInBackground];
+```
+```swift
+let number = 42
+let string = "the number is \(number)"
+let date = NSDate()
+let data = "foo".dataUsingEncoding(NSUTF8StringEncoding)
+let array = [string, number]
+let dictionary = ["number": number, "string": string]
+let null = NSNull()
+
+var bigObject = PFObject(className:"BigObject")
+bigObject["myNumber"] = number
+bigObject["myString"] = string
+bigObject["myDate"] = date
+bigObject["myData"] = data
+bigObject["myArray"] = array
+bigObject["myDictionary"] = dictionary
+bigObject["myNull"] = null
+bigObject.saveInBackground()
+```
+
+We do not recommend storing large pieces of binary data like images or documents using `NSData` fields on `PFObject`. `PFObject`s should not exceed 128 kilobytes in size. To store more, we recommend you use `PFFile`. See the [guide section](#files) for more details.
+
+For more information about how Parse handles data, check out our documentation on [Data & Security](/docs/data).
+
+# Queries
+
+We've already seen how a `PFQuery` with `getObjectWithId:` can retrieve a single `PFObject` from Parse. There are many other ways to retrieve data with `PFQuery` - you can retrieve many objects at once, put conditions on the objects you wish to retrieve, cache queries automatically to avoid writing that code yourself, and more.
+
+## Basic Queries
+
+In many cases, `getObjectInBackgroundWithId:block:` isn't powerful enough to specify which objects you want to retrieve. The `PFQuery` offers different ways to retrieve a list of objects rather than just a single object.
+
+The general pattern is to create a `PFQuery`, put conditions on it, and then retrieve a `NSArray` of matching `PFObject`s using either `findObjectsInBackgroundWithBlock:` or `findObjectsInBackgroundWithTarget:selector:`. For example, to retrieve scores with a particular `playerName`, use the `whereKey:equalTo:` method to constrain the value for a key.
+
+```objc
+PFQuery *query = [PFQuery queryWithClassName:@"GameScore"];
+[query whereKey:@"playerName" equalTo:@"Dan Stemkoski"];
+[query findObjectsInBackgroundWithBlock:^(NSArray *objects, NSError *error) {
+  if (!error) {
+    // The find succeeded.
+    NSLog(@"Successfully retrieved %d scores.", objects.count);
+    // Do something with the found objects
+    for (PFObject *object in objects) { NSLog(@"%@", object.objectId);
+    }
+  } else {
+    // Log details of the failure
+    NSLog(@"Error: %@ %@", error, [error userInfo]);
+  }
+}];
+```
+```swift
+var query = PFQuery(className:"GameScore")
+query.whereKey("playerName", equalTo:"Sean Plott")
+query.findObjectsInBackgroundWithBlock {
+  (objects: [AnyObject]!, error: NSError!) -> Void in
+  if error == nil {
+    // The find succeeded.
+    NSLog("Successfully retrieved \(objects.count) scores.")
+    // Do something with the found objects
+    for object in objects { NSLog("%@", object.objectId)
+    }
+  } else {
+    // Log details of the failure
+    NSLog("Error: %@ %@", error, error.userInfo!)
+  }
+}
+```
+
+Both `findObjectsInBackgroundWithBlock:` and `findObjectsInBackgroundWithTarget:selector:` work similarly in that they assure the network request is done without blocking, and run the block/callback in the main thread. There is a corresponding `findObjects` method that blocks the calling thread, if you are already in a background thread:
+
+```objc
+// Only use this code if you are already running it in a background
+// thread, or for testing purposes!
+PFQuery *query = [PFQuery queryWithClassName:@"GameScore"];
+[query whereKey:@"playerName" equalTo:@"Dan Stemkoski"];
+NSArray* scoreArray = [query findObjects];
+```
+```swift
+// Only use this code if you are already running it in a background
+// thread, or for testing purposes!
+NSPredicate *predicate = [NSPredicate predicateWithFormat:   @"playerName = 'Dan Stemkosk'"];
+PFQuery *query = [PFQuery queryWithClassName:@"GameScore" predicate:predicate];
+NSArray* scoreArray = [query findObjects];
+```
+
+## Specifying Constraints with NSPredicate
+
+To get the most out of `PFQuery` we recommend using its methods listed below to add constraints. However, if you prefer using `NSPredicate`, a subset of the constraints can be specified by providing an `NSPredicate` when creating your `PFQuery`.
+
+```objc
+NSPredicate *predicate = [NSPredicate predicateWithFormat:   @"playerName = 'Dan Stemkosk'"];
+PFQuery *query = [PFQuery queryWithClassName:@"GameScore" predicate:predicate];
+```
+```swift
+let predicate = NSPredicate(format:"playerName = 'Dan Stemkosk'")
+var query = PFQuery(className:"GameScore", predicate:predicate)
+```
+
+These features are supported:
+
+*   Simple comparisons such as `=`, `!=`, `<`, `>`, `<=`, `>=`, and `BETWEEN` with a key and a constant.
+*   Containment predicates, such as `x IN {1, 2, 3}`.
+*   Key-existence predicates, such as `x IN SELF`.
+*   `BEGINSWITH` expressions.
+*   Compound predicates with `AND`, `OR`, and `NOT`.
+*   Sub-queries with `"key IN %@", subquery`.
+
+The following types of predicates are **not** supported:
+
+*   Aggregate operations, such as `ANY`, `SOME`, `ALL`, or `NONE`.
+*   Regular expressions, such as `LIKE`, `MATCHES`, `CONTAINS`, or `ENDSWITH`.
+*   Predicates comparing one key to another.
+*   Complex predicates with many `OR`ed clauses.
+
+## Query Constraints
+
+There are several ways to put constraints on the objects found by a `PFQuery`. You can filter out objects with a particular key-value pair with `whereKey:notEqualTo`:
+
+```objc
+[query whereKey:@"playerName" notEqualTo:@"Michael Yabuti"];
+```
+```swift
+NSPredicate *predicate = [NSPredicate predicateWithFormat:   @"playerName != 'Michael Yabuti'"];
+PFQuery *query = [PFQuery queryWithClassName:@"GameScore" predicate:predicate];
+```
+
+You can give multiple constraints, and objects will only be in the results if they match all of the constraints.  In other words, it's like an AND of constraints.
+
+```objc
+[query whereKey:@"playerName" notEqualTo:@"Michael Yabuti"];
+[query whereKey:@"playerAge" greaterThan:@18];
+```
+```swift
+NSPredicate *predicate = [NSPredicate predicateWithFormat:   @"playerName != 'Michael Yabuti' AND playerAge > 18"];
+PFQuery *query = [PFQuery queryWithClassName:@"GameScore" predicate:predicate];
+```
+
+You can limit the number of results by setting `limit`. By default, results are limited to 100, but anything from 1 to 1000 is a valid limit:
+
+```objc
+query.limit = 10; // limit to at most 10 results
+```
+```swift
+query.limit = 10
+```
+
+If you want exactly one result, a more convenient alternative may be to use `getFirstObject` or `getFirstObjectInBackground` instead of using `findObject`.
+
+```objc
+PFQuery *query = [PFQuery queryWithClassName:@"GameScore"];
+[query whereKey:@"playerEmail" equalTo:@"dstemkoski@example.com"];
+[query getFirstObjectInBackgroundWithBlock:^(PFObject *object, NSError *error) {
+  if (!object) {
+    NSLog(@"The getFirstObject request failed.");
+  } else {
+    // The find succeeded.
+    NSLog(@"Successfully retrieved the object.");
+  }
+}];
+```
+```swift
+var query = PFQuery(className:"GameScore")
+query.whereKey("playerEmail", equalTo:"dstemkoski@example.com")
+query.getFirstObjectInBackgroundWithBlock {
+  (object: PFObject!, error: NSError!) -> Void in
+  if object != nil {
+    NSLog("The getFirstObject request failed.")
+  } else {
+    // The find succeeded.
+    NSLog("Successfully retrieved the object.")
+  }
+}
+```
+
+You can skip the first results by setting `skip`. This can be useful for pagination:
+
+```objc
+query.skip = 10; // skip the first 10 results
+```
+```swift
+query.skip = 10
+```
+
+For sortable types like numbers and strings, you can control the order in which results are returned:
+
+```objc
+// Sorts the results in ascending order by the score field
+[query orderByAscending:@"score"];
+
+// Sorts the results in descending order by the score field
+[query orderByDescending:@"score"];
+```
+```swift
+// Sorts the results in ascending order by the score field
+query.orderByAscending("score")
+
+// Sorts the results in descending order by the score field
+query.orderByDescending("score")
+```
+
+You can add more sort keys to the query as follows:
+
+```objc
+// Sorts the results in ascending order by the score field if the previous sort keys are equal.
+[query addAscendingOrder:@"score"];
+
+// Sorts the results in descending order by the score field if the previous sort keys are equal.
+[query addDescendingOrder:@"score"];
+```
+```swift
+// Sorts the results in ascending order by the score field if the previous sort keys are equal.
+query.addAscendingOrder("score")
+
+// Sorts the results in descending order by the score field if the previous sort keys are equal.
+query.addDescendingOrder("score")
+```
+
+For sortable types, you can also use comparisons in queries:
+
+```objc
+// Restricts to wins < 50
+[query whereKey:@"wins" lessThan:@50];
+
+// Restricts to wins <= 50
+[query whereKey:@"wins" lessThanOrEqualTo:@50];
+
+// Restricts to wins > 50
+[query whereKey:@"wins" greaterThan:@50];
+
+// Restricts to wins >= 50
+[query whereKey:@"wins" greaterThanOrEqualTo:@50];
+```
+```swift
+// Restricts to wins < 50
+NSPredicate *predicate = [NSPredicate predicateWithFormat:@"wins < 50"];
+PFQuery *query = [PFQuery queryWithClassName:@"GameScore" predicate:predicate];
+
+// Restricts to wins <= 50
+predicate = [NSPredicate predicateWithFormat:@"wins <= 50"];
+query = [PFQuery queryWithClassName:@"GameScore" predicate:predicate];
+
+// Restricts to wins > 50
+predicate = [NSPredicate predicateWithFormat:@"wins > 50"];
+query = [PFQuery queryWithClassName:@"GameScore" predicate:predicate];
+
+// Restricts to wins >= 50
+predicate = [NSPredicate predicateWithFormat:@"wins >= 50"];
+query = [PFQuery queryWithClassName:@"GameScore" predicate:predicate];
+```
+
+If you want to retrieve objects matching several different values, you can use `whereKey:containedIn:`, providing an array of acceptable values. This is often useful to replace multiple queries with a single query. For example, if you want to retrieve scores made by any player in a particular list:
+
+```objc
+// Finds scores from any of Jonathan, Dario, or Shawn
+NSArray *names = @[@"Jonathan Walsh",    @"Dario Wunsch",    @"Shawn Simon"];
+[query whereKey:@"playerName" containedIn:names];
+```
+```swift
+// Finds scores from any of Jonathan, Dario, or Shawn
+NSArray *names = @[@"Jonathan Walsh",    @"Dario Wunsch",    @"Shawn Simon"];
+NSPredicate *pred = [NSPredicate predicateWithFormat:      @"playerName IN %@", names];
+PFQuery *query = [PFQuery queryWithClassName:@"GameScore" predicate:pred];
+```
+
+If you want to retrieve objects that do not match any of several values you can use `whereKey:notContainedIn:`, providing an array of acceptable values. For example, if you want to retrieve scores from players besides those in a list:
+
+```objc
+// Finds scores from anyone who is neither Jonathan, Dario, nor Shawn
+NSArray *names = @[@"Jonathan Walsh",    @"Dario Wunsch",    @"Shawn Simon"];
+[query whereKey:@"playerName" notContainedIn:names];
+```
+```swift
+// Finds scores from anyone who is neither Jonathan, Dario, nor Shawn
+NSArray *names = @[@"Jonathan Walsh",    @"Dario Wunsch",    @"Shawn Simon"];
+NSPredicate *pred = [NSPredicate predicateWithFormat:      @"NOT (playerName IN %@)", names];
+PFQuery *query = [PFQuery queryWithClassName:@"GameScore" predicate:pred];
+```
+
+If you want to retrieve objects that have a particular key set, you can use `whereKeyExists`. Conversely, if you want to retrieve objects without a particular key set, you can use `whereKeyDoesNotExist`.
+
+```objc
+// Finds objects that have the score set
+[query whereKeyExists:@"score"];
+
+// Finds objects that don't have the score set
+[query whereKeyDoesNotExist:@"score"];
+```
+```swift
+// Finds objects that have the score set
+NSPredicate *predicate = [NSPredicate predicateWithFormat:@"score IN SELF"];
+PFQuery *query = [PFQuery queryWithClassName:@"GameScore" predicate:predicate];
+
+// Finds objects that don't have the score set
+NSPredicate *predicate = [NSPredicate predicateWithFormat:@"NOT (score IN SELF)"];
+PFQuery *query = [PFQuery queryWithClassName:@"GameScore" predicate:predicate];
+```
+
+You can use the `whereKey:matchesKey:inQuery:` method to get objects where a key matches the value of a key in a set of objects resulting from another query.  For example, if you have a class containing sports teams and you store a user's hometown in the user class, you can issue one query to find the list of users whose hometown teams have winning records.  The query would look like:
+
+```objc
+PFQuery *teamQuery = [PFQuery queryWithClassName:@"Team"];
+[teamQuery whereKey:@"winPct" greaterThan:@(0.5)];
+PFQuery *userQuery = [PFQuery queryForUser];
+[userQuery whereKey:@"hometown" matchesKey:@"city" inQuery:teamQuery];
+[userQuery findObjectsInBackgroundWithBlock:^(NSArray *results, NSError *error) {
+    // results will contain users with a hometown team with a winning record
+}];
+```
+```swift
+var teamQuery = PFQuery(className:"Team")
+teamQuery.whereKey("winPct", greaterThan:0.5)
+var userQuery = PFUser.query()
+userQuery.whereKey("hometown", matchesKey:"city", inQuery:teamQuery)
+userQuery.findObjectsInBackgroundWithBlock {
+  (results: [AnyObject]!, error: NSError!) -> Void in
+  if error == nil {
+    // results will contain users with a hometown team with a winning record
+  }
+}
+```
+
+Conversely, to get objects where a key does not match the value of a key in a set of objects resulting from another query, use `whereKey:doesNotMatchKey:inQuery:`.  For example, to find users whose hometown teams have losing records:
+
+```objc
+PFQuery *losingUserQuery = [PFQuery queryForUser];
+[losingUserQuery whereKey:@"hometown" doesNotMatchKey:@"city" inQuery:teamQuery];
+[losingUserQuery findObjectsInBackgroundWithBlock:^(NSArray *results, NSError *error) {
+    // results will contain users with a hometown team with a losing record
+}];
+```
+```swift
+var losingUserQuery = PFUser.query()
+losingUserQuery.whereKey("hometown", doesNotMatchKey:"city", inQuery:teamQuery)
+losingUserQuery.findObjectsInBackgroundWithBlock {
+  (results: [AnyObject]!, error: NSError!) -> Void in
+  // results will contain users with a hometown team with a losing records
+}
+```
+
+You can restrict the fields returned by calling `selectKeys:` with an `NSArray` of keys. To retrieve documents that contain only the `score` and `playerName` fields (and also special built-in fields such as `objectId`, `createdAt`, and `updatedAt`):
+
+```objc
+PFQuery *query = [PFQuery queryWithClassName:@"GameScore"];
+[query selectKeys:@[@"playerName", @"score"]];
+[query findObjectsInBackgroundWithBlock:^(NSArray *results, NSError *error) {
+    // objects in results will only contain the playerName and score fields
+}];
+```
+```swift
+var query = PFQuery(className:"GameScore")
+query.selectKeys(["playerName", "score"])
+query.findObjectsInBackgroundWithBlock {
+  (objects: [AnyObject]!, error: NSError!) -> Void in
+  if error == nil {
+    // objects in results will only contain the playerName and score fields
+  }
+}
+```
+
+The remaining fields can be fetched later by calling one of the `fetchIfNeeded` variants on the returned objects:
+
+```objc
+PFObject *object = (PFObject*)results[0];
+[object fetchIfNeededInBackgroundWithBlock:^(PFObject *object, NSError *error) {
+  // all fields of the object will now be available here.
+}];
+```
+```swift
+var object = results[0] as PFObject!
+object.fetchIfNeededInBackgroundWithBlock {
+  (object: PFObject!, error: NSError!) -> Void in
+  // all fields of the object will now be available here.
+}
+```
+
+## Queries on Array Values
+
+For keys with an array type, you can find objects where the key's array value contains 2 by:
+
+```objc
+// Find objects where the array in arrayKey contains 2.
+[query whereKey:@"arrayKey" equalTo:@2];
+```
+```swift
+// Find objects where the array in arrayKey contains 2.
+NSPredicate *predicate = [NSPredicate predicateWithFormat:@"2 IN arrayKey"];
+PFQuery *query = [PFQuery queryWithClassName:@"MyClass" predicate:predicate];
+```
+
+You can also find objects where the key's array value contains each of the values 2, 3, and 4 with the following: 
+
+```objc
+// Find objects where the array in arrayKey contains each of the
+// elements 2, 3, and 4.
+[query whereKey:@"arrayKey" containsAllObjectsInArray:@[@2, @3, @4]];
+```
+```swift
+// Find objects where the array in arrayKey contains each of the
+// elements 2, 3, and 4.
+query.whereKey("arrayKey", containsAllObjectsInArray:[2, 3, 4])
+```
+
+## Queries on String Values
+
+Use `whereKey:hasPrefix:` to restrict to string values that start with a particular string. Similar to a MySQL LIKE operator, this is indexed so it is efficient for large datasets:
+
+```objc
+// Finds barbecue sauces that start with "Big Daddy's".
+PFQuery *query = [PFQuery queryWithClassName:@"BarbecueSauce"];
+[query whereKey:@"name" hasPrefix:@"Big Daddy's"];
+```
+```swift
+// Finds barbecue sauces that start with "Big Daddy's".
+NSPredicate *pred = [NSPredicate predicateWithFormat:@"name BEGINSWITH 'Big Daddy'"];
+PFQuery *query = [PFQuery queryWithClassName:@"BarbecueSauce" predicate:pred];
+```
+
+<div class="callout_green">
+  If you're trying to implement a generic search feature, we recommend taking a look at this blog post: [Implementing Scalable Search on a NoSQL Backend](http://blog.parse.com/2013/03/19/implementing-scalable-search-on-a-nosql-backend/).
+</div>
+
+## Relational Queries
+
+There are several ways to issue queries for relational data. If you want to retrieve objects where a field matches a particular `PFObject`, you can use `whereKey:equalTo:` just like for other data types. For example, if each `Comment` has a `Post` object in its `post` field, you can fetch comments for a particular `Post`:
+
+```objc
+// Assume PFObject *myPost was previously created.
+PFQuery *query = [PFQuery queryWithClassName:@"Comment"];
+[query whereKey:@"post" equalTo:myPost];
+
+[query findObjectsInBackgroundWithBlock:^(NSArray *comments, NSError *error) {
+    // comments now contains the comments for myPost
+}];
+```
+```swift
+// Assume PFObject *myPost was previously created.
+NSPredicate *predicate = [NSPredicate predicateWithFormat:@"post = %@", myPost];
+PFQuery *query = [PFQuery queryWithClassName:@"Comment" predicate:predicate];
+
+[query findObjectsInBackgroundWithBlock:^(NSArray *comments, NSError *error) {
+    // comments now contains the comments for myPost
+}];
+```
+
+You can also do relational queries by `objectId`:
+
+```objc
+[query whereKey:@"post" equalTo:[PFObject objectWithoutDataWithClassName:@"Post" objectId:@"1zEcyElZ80"]];
+```
+```swift
+[NSPredicate predicateWithFormat:@"post = %@",
+ [PFObject objectWithoutDataWithClassName:@"Post" objectId:@"1zEcyElZ80"]];
+```
+
+If you want to retrieve objects where a field contains a `PFObject` that match a different query, you can use `whereKey:matchesQuery`. Note that the default limit of 100 and maximum limit of 1000 apply to the inner query as well, so with large data sets you may need to construct queries carefully to get the desired behavior. In order to find comments for posts with images, you can do:
+
+```objc
+PFQuery *innerQuery = [PFQuery queryWithClassName:@"Post"];
+[innerQuery whereKeyExists:@"image"];
+PFQuery *query = [PFQuery queryWithClassName:@"Comment"];
+[query whereKey:@"post" matchesQuery:innerQuery];
+[query findObjectsInBackgroundWithBlock:^(NSArray *comments, NSError *error) {
+    // comments now contains the comments for posts with images
+}];
+```
+```swift
+NSPredicate *innerPred = [NSPredicate predicateWithFormat:@"image IN SELF"];
+PFQuery *innerQuery = [PFQuery queryWithClassName:@"Post" predicate:innerPred];
+
+NSPredicate *pred = [NSPredicate predicateWithFormat:@"post IN %@", innerQuery];
+PFQuery *query = [PFQuery queryWithClassName:@"Comment" predicate:pred];
+
+[query findObjectsInBackgroundWithBlock:^(NSArray *comments, NSError *error) {
+    // comments now contains the comments for posts with images
+}];
+```
+
+If you want to retrieve objects where a field contains a `PFObject` that does not match a different query, you can use `whereKey:doesNotMatchQuery`.  In order to find comments for posts without images, you can do:
+
+```objc
+PFQuery *innerQuery = [PFQuery queryWithClassName:@"Post"];
+[innerQuery whereKeyExists:@"image"];
+PFQuery *query = [PFQuery queryWithClassName:@"Comment"];
+[query whereKey:@"post" doesNotMatchQuery:innerQuery];
+[query findObjectsInBackgroundWithBlock:^(NSArray *comments, NSError *error) {
+    // comments now contains the comments for posts without images
+}];
+```
+```swift
+NSPredicate *innerPred = [NSPredicate predicateWithFormat:@"image IN SELF"];
+PFQuery *innerQuery = [PFQuery queryWithClassName:@"Post" predicate:innerPred];
+
+NSPredicate *pred = [NSPredicate predicateWithFormat:@"NOT (post IN %@)", innerQuery];
+PFQuery *query = [PFQuery queryWithClassName:@"Comment" predicate:pred];
+
+[query findObjectsInBackgroundWithBlock:^(NSArray *comments, NSError *error) {
+    // comments now contains the comments for posts without images
+}];
+```
+
+In some situations, you want to return multiple types of related objects in one query. You can do this with the `includeKey:` method. For example, let's say you are retrieving the last ten comments, and you want to retrieve their related posts at the same time:
+
+```objc
+PFQuery *query = [PFQuery queryWithClassName:@"Comment"];
+
+// Retrieve the most recent ones
+[query orderByDescending:@"createdAt"];
+
+// Only retrieve the last ten
+query.limit = 10;
+
+// Include the post data with each comment
+[query includeKey:@"post"];
+
+[query findObjectsInBackgroundWithBlock:^(NSArray *comments, NSError *error) {
+    // Comments now contains the last ten comments, and the "post" field
+    // has been populated. For example:
+    for (PFObject *comment in comments) {  // This does not require a network access.  PFObject *post = comment[@"post"];  NSLog(@"retrieved related post: %@", post);
+    }
+}];
+```
+```swift
+var query = PFQuery(className:"Comment")
+
+// Retrieve the most recent ones
+query.orderByDescending("createdAt")
+
+// Only retrieve the last ten
+query.limit = 10
+
+// Include the post data with each comment
+query.includeKey("post")
+
+query.findObjectsInBackgroundWithBlock {
+  (comments: [AnyObject]!, error: NSError!) -> Void in
+  // Comments now contains the last ten comments, and the "post" field
+  // has been populated. For example:
+  for comment in comments {
+    // This does not require a network access.
+    var post = comment["post"] as PFObject
+    NSLog("retrieved related post: \(post)")
+  }
+}
+```
+
+You can also do multi level includes using dot notation.  If you wanted to include the post for a comment and the post's author as well you can do:
+
+```objc
+[query includeKey:@"post.author"];
+```
+```swift
+query.includeKey("post.author")
+```
+
+You can issue a query with multiple fields included by calling `includeKey:` multiple times. This functionality also works with PFQuery helpers like `getFirstObject` and `getObjectInBackground`
+
+## Querying the Local Datastore
+
+If you have enabled the local datastore by calling `[Parse enableLocalDatastore]` before your call to `[Parse setApplicationId:clientKey:]`, then you can also query against the objects stored locally on the device. To do this, call the `fromLocalDatastore` method on the query.
+
+```objc
+[query fromLocalDatastore];
+[[query findObjectsInBackground] continueWithBlock:^id(BFTask *task) {
+  if (!task.error) {
+    // There was an error.
+    return task;
+  }
+
+  // Results were successfully found from the local datastore.
+  return task;
+}];
+```
+```swift
+query.fromLocalDatastore()
+query.findObjectsInBackground().continueWithBlock({ 
+  (task: BFTask!) -> AnyObject! in
+  if task.error != nil {
+      // There was an error.
+      return task
+  }
+
+  // Results were successfully found from the local datastore.
+
+  return task
+})
+```
+
+You can query from the local datastore using exactly the same kinds of queries you use over the network. The results will include every object that matches the query that's been pinned to your device. The query even takes into account any changes you've made to the object that haven't yet been saved to the cloud. For example, if you call `deleteEventually`, on an object, it will no longer be returned from these queries.
+
+## Caching Queries
+
+It's often useful to cache the result of a query on disk. This lets you show data when the user's device is offline, or when the app has just started and network requests have not yet had time to complete. Parse takes care of automatically flushing the cache when it takes up too much space.
+
+The default query behavior doesn't use the cache, but you can enable caching by setting `query.cachePolicy`. For example, to try the network and then fall back to cached data if the network is not available:
+
+```objc
+PFQuery *query = [PFQuery queryWithClassName:@"GameScore"];
+query.cachePolicy = kPFCachePolicyNetworkElseCache;
+[query findObjectsInBackgroundWithBlock:^(NSArray *objects, NSError *error) {
+  if (!error) {
+    // Results were successfully found, looking first on the
+    // network and then on disk.
+  } else {
+    // The network was inaccessible and we have no cached data for
+    // this query.
+  }
+}];
+```
+```swift
+var query = PFQuery(className:"GameScore")
+query.cachePolicy = kPFCachePolicyNetworkElseCache
+query.findObjectsInBackgroundWithBlock {
+  (objects: [AnyObject]!, error: NSError!) -> Void in
+  if error == nil {
+    // Results were successfully found, looking first on the
+    // network and then on disk.
+  } else {
+    // The network was inaccessible and we have no cached data for
+    // this query.
+  }
+}
+```
+
+Parse provides several different cache policies:
+
+*   `kPFCachePolicyIgnoreCache`: The query does not load from the cache or save results to the cache. `kPFCachePolicyIgnoreCache` is the default cache policy.
+*   `kPFCachePolicyCacheOnly`: The query only loads from the cache, ignoring the network. If there are no cached results, that causes a `PFError`.
+*   `kPFCachePolicyNetworkOnly`: The query does not load from the cache, but it will save results to the cache.
+*   `kPFCachePolicyCacheElseNetwork`: The query first tries to load from the cache, but if that fails, it loads results from the network. If neither cache nor network succeed, there is a `PFError`.
+*   `kPFCachePolicyNetworkElseCache`:  The query first tries to load from the network, but if that fails, it loads results from the cache. If neither network nor cache succeed, there is a `PFError`.
+*   `kPFCachePolicyCacheThenNetwork`: The query first loads from the cache, then loads from the network. In this case, the callback will actually be called twice - first with the cached results, then with the network results. Since it returns two results at different times, this cache policy cannot be used synchronously with `findObjects`.
+
+If you need to control the cache's behavior, you can use methods provided in PFQuery to interact with the cache.  You can do the following operations on the cache:
+
+*   Check to see if there is a cached result for the query with:
+```objc
+BOOL isInCache = [query hasCachedResult];
+```
+```swift
+let isInCache = query.hasCachedResult()
+```
+*   Remove any cached results for a query with:
+```objc
+[query clearCachedResult];
+```
+```swift
+query.clearCachedResult()
+```
+*   Remove cached results for queries with:
+```objc
+[PFQuery clearAllCachedResults];
+```
+```swift
+PFQuery.clearAllCachedResults()
+```
+
+Query caching also works with PFQuery helpers including `getFirstObject` and `getObjectInBackground`.
+
+## Counting Objects
+
+Caveat: Count queries are rate limited to a maximum of 160 requests per minute.  They can also return inaccurate results for classes with more than 1,000 objects.  Thus, it is preferable to architect your application to avoid this sort of count operation (by using counters, for example.)
+
+If you just need to count how many objects match a query, but you do not need to retrieve the objects that match, you can use `countObjects` instead of `findObjects`. For example, to count how many games have been played by a particular player:
+
+```objc
+PFQuery *query = [PFQuery queryWithClassName:@"GameScore"];
+[query whereKey:@"playername" equalTo:@"Sean Plott"];
+[query countObjectsInBackgroundWithBlock:^(int count, NSError *error) {
+  if (!error) {
+    // The count request succeeded. Log the count
+    NSLog(@"Sean has played %d games", count);
+  } else {
+    // The request failed
+  }
+}];
+```
+```swift
+var query = PFQuery(className:"GameScore")
+query.whereKey("playerName", equalTo:"Sean Plott")
+query.countObjectsInBackgroundWithBlock {
+  (count: Int, error: NSError!) -> Void in
+  if error == nil {
+    NSLog("Sean has played %@ games", count)
+  }
+}
+```
+
+If you want to block the calling thread, you can also use the synchronous `countObjects` method.
+
+## Compound Queries
+
+If you want to find objects that match one of several queries, you can use `orQueryWithSubqueries:` method.  For instance, if you want to find players with either have a lot of wins or a few wins, you can do:
+
+```objc
+PFQuery *lotsOfWins = [PFQuery queryWithClassName:@"Player"];
+[lotsOfWins whereKey:@"wins" greaterThan:@150];
+
+PFQuery *fewWins = [PFQuery queryWithClassName:@"Player"];
+[fewWins whereKey:@"wins" lessThan:@5];
+PFQuery *query = [PFQuery orQueryWithSubqueries:@[fewWins,lotsOfWins]];
+[query findObjectsInBackgroundWithBlock:^(NSArray *results, NSError *error) {
+  // results contains players with lots of wins or only a few wins.
+}];
+```
+```swift
+var lotsOfWins = PFQuery(className:"Player")
+lotsOfWins.whereKey("wins", greaterThan:150)
+
+var fewWins = PFQuery(className:"Player")
+fewWins.whereKey("wins", lessThan:5)
+
+var query = PFQuery.orQueryWithSubqueries([lotsOfWins, fewWins])
+query.findObjectsInBackgroundWithBlock {
+  (results: [AnyObject]!, error: NSError!) -> Void in
+  if error == nil {
+    // results contains players with lots of wins or only a few wins.
+  }
+}
+```
+
+You can add additional constraints to the newly created `PFQuery` that act as an 'and' operator.
+
+Note that we do not, however, support GeoPoint or non-filtering constraints (e.g. `nearGeoPoint`, `withinGeoBox...:`, `limit`, `skip`, `orderBy...:`, `includeKey:`) in the subqueries of the compound query.
+
+# Subclasses
+
+Parse is designed to get you up and running as quickly as possible. You can access all of your data using the `PFObject` class and access any field with `objectForKey:` or the `[]` subscripting operator. In mature codebases, subclasses have many advantages, including terseness, extensibility, and support for autocomplete. Subclassing is completely optional, but can transform this code:
+
+```objc
+PFObject *shield = [PFObject objectWithClassName:@"Armor"];
+shield[@"displayName"] = @"Wooden Shield";
+shield[@"fireProof"] = @NO;
+shield[@"rupees"] = @50;
+```
+```swift
+var shield = PFObject(className:"Armor")
+shield["displayName"] = "Wooden Shield"
+shield["fireProof"] = false
+shield["rupees"] = 50
+```
+
+Into this:
+
+```objc
+Armor *shield = [Armor object];
+shield.displayName = @"Wooden Shield";
+shield.fireProof = NO;
+shield.rupees = 50;
+```
+```swift
+var shield = Armor()
+shield.displayName = "Wooden Shield"
+shield.fireProof = false
+shield.rupees = 50
+```
+
+## Subclassing PFObject
+
+To create a `PFObject` subclass:
+
+1.  Declare a subclass which conforms to the `PFSubclassing` protocol.
+2.  Implement the class method `parseClassName`. This is the string you would pass to `initWithClassName:` and makes all future class name references unnecessary.
+3.  Import `PFObject+Subclass` in your .m file. This implements all methods in `PFSubclassing` beyond `parseClassName`.
+4.  Call `[YourClass registerSubclass]` before Parse `setApplicationId:clientKey:`. An easy way to do this is with your class' [+load](https://developer.apple.com/library/ios/documentation/cocoa/reference/foundation/classes/nsobject_class/reference/reference.html#//apple_ref/occ/clm/NSObject/load) method.
+
+The following code sucessfully declares, implements, and registers the `Armor` subclass of `PFObject`:
+
+```objc
+// Armor.h
+@interface Armor : PFObject<PFSubclassing>
++ (NSString *)parseClassName;
+@end
+
+// Armor.m
+// Import this header to let Armor know that PFObject privately provides most
+// of the methods for PFSubclassing.
+#import <Parse/PFObject+Subclass.h>
+
+@implementation Armor
++ (void)load {
+  [self registerSubclass];
+}
+
++ (NSString *)parseClassName {
+  return @"Armor";
+}
+@end
+
+```
+```swift
+// Armor.swift
+
+class Armor : PFObject, PFSubclassing {
+  class func load() {
+    self.registerSubclass()
+  }
+  class func parseClassName() -> String! {
+    return "Armor"
+  }
+}
+```
+
+## Properties & Methods
+
+Adding custom properties and methods to your `PFObject` subclass helps encapsulate logic about the class. With `PFSubclassing`, you can keep all your logic about a subject in one place rather than using separate classes for business logic and storage/transmission logic.
+
+`PFObject` supports dynamic synthesizers just like `NSManagedObject`. Declare a property as you normally would, but use `@dynamic` rather than `@synthesize` in your .m file. The following example creates a `displayName` property in the `Armor` class:
+
+```objc
+// Armor.h
+@interface Armor : PFObject<PFSubclassing>
++ (NSString *)parseClassName;
+@property (retain) NSString *displayName;
+@end
+
+// Armor.m
+@dynamic displayName;
+```
+
+You can access the displayName property using `armor.displayName` or `[armor displayName]` and assign to it using `armor.displayName = @"Wooden Shield"` or `[armor setDisplayName:@"Wooden Sword"]`. Dynamic properties allow Xcode to provide autocomplete and catch typos.
+
+`NSNumber` properties can be implemented either as `NSNumber`s or as their primitive counterparts. Consider the following example:
+
+```objc
+@property BOOL fireProof;
+@property int rupees;
+```
+
+In this case, `game[@"fireProof"]` will return an `NSNumber` which is accessed using `boolValue` and `game[@"rupees"]` will return an `NSNumber` which is accessed using `intValue`, but the `fireProof` property is an actual `BOOL` and the `rupees` property is an actual `int`. The dynamic getter will automatically extract the `BOOL` or `int` value and the dynamic setter will automatically wrap the value in an `NSNumber`. You are free to use either format. Primitive property types are easier to use but `NSNumber` property types support nil values more clearly.
+
+If you need more complicated logic than simple property access, you can declare your own methods as well:
+
+```objc
+@dynamic iconFile;
+
+- (UIImageView *)iconView {
+  PFImageView *view = [[PFImageView alloc] initWithImage:kPlaceholderImage];
+  view.file = self.iconFile;
+  [view loadInBackground];
+  return [view autorelease];
+}
+```
+
+## Initializing Subclasses
+
+You should create new objects with the `object` class method. This constructs an autoreleased instance of your type and correctly handles further subclassing. To create a reference to an existing object, use `objectWithoutDataWithObjectId:`.
+
+## Queries
+
+You can get a query for objects of a particular subclass using the class method `query`. The following example queries for armors that the user can afford:
+
+```objc
+PFQuery *query = [Armor query];
+[query whereKey:@"rupees" lessThanOrEqualTo:[PFUser currentUser][@"rupees"]];
+[query findObjectsInBackgroundWithBlock:^(NSArray *objects, NSError *error) {
+  if (!error) {
+    Armor *firstArmor = [objects firstObject];
+    // ...
+  }
+}];
+```
+```swift
+let query = Armor.query()
+query.whereKey("rupees", lessThanOrEqualTo: PFUser.currentUser()["rupees"])
+query.findObjectsInBackgroundWithBlock { (objects: [AnyObject]!, error: NSError!) -> Void in
+  if error == nil {
+    let firstArmor = objects.first
+    //...
+  }
+}
+```
+
+# Files
+
+## The PFFile
+
+`PFFile` lets you store application files in the cloud that would otherwise be too large or cumbersome to fit into a regular `PFObject`. The most common use case is storing images but you can also use it for documents, videos, music, and any other binary data (up to 10 megabytes).
+
+<div class="callout_green">
+  Learn how to make an app that allows the user to take photos and upload it directly to Parse in our [Saving Images tutorial](/tutorials/saving-images).
+</div>
+
+Getting started with `PFFile` is easy. First, you'll need to have the data in `NSData` form and then create a `PFFile` with it. In this example, we'll just use a string:
+
+```objc
+NSData *data = [@"Working at Parse is great!" dataUsingEncoding:NSUTF8StringEncoding];
+PFFile *file = [PFFile fileWithName:@"resume.txt" data:data];
+```
+```swift
+let str = "Working at Parse is great!"
+let data = str.dataUsingEncoding(NSUTF8StringEncoding)
+let file = PFFile(name:"resume.txt", data:data)
+```
+
+Notice in this example that we give the file a name of `resume.txt`. There's two things to note here:
+
+*   You don't need to worry about filename collisions. Each upload gets a unique identifier so there's no problem with uploading multiple files named `resume.txt`.
+*   It's important that you give a name to the file that has a file extension. This lets Parse figure out the file type and handle it accordingly. So, if you're storing PNG images, make sure your filename ends with `.png`.
+
+Next you'll want to save the file up to the cloud. As with `PFObject`, there are many variants of the `save` method you can use depending on what sort of callback and error handling suits you.
+
+```objc
+[file saveInBackground];
+```
+```swift
+file.saveInBackground()
+```
+
+Finally, after the save completes, you can associate a `PFFile` onto a `PFObject` just like any other piece of data:
+
+```objc
+PFObject *jobApplication = [PFObject objectWithClassName:@"JobApplication"]
+jobApplication[@"applicantName"] = @"Joe Smith";
+jobApplication[@"applicantResumeFile"] = file;
+[jobApplication saveInBackground];
+```
+```swift
+var jobApplication = PFObject(className:"JobApplication")
+jobApplication["applicantName"] = "Joe Smith"
+jobApplication["applicantResumeFile"] = file
+jobApplication.saveInBackground()
+```
+
+Retrieving it back involves calling one of the `getData` variants on the `PFFile`. Here we retrieve the resume file off another JobApplication object:
+
+```objc
+PFFile *applicantResume = anotherApplication[@"applicantResumeFile"];
+NSData *resumeData = [applicantResume getData];
+```
+```swift
+let applicantResume = annotherApplication["applicationResumeFile"] as PFFile
+let resumeData = applicantResume.getData()
+```
+
+Just like on `PFObject`, you will most likely want to use the background version of `getData`.
+
+## Images
+
+You can easily store images by converting them to `NSData` and then using `PFFile`. Suppose you have a `UIImage` named `image` that you want to save as a `PFFile`:
+
+```objc
+NSData *imageData = UIImagePNGRepresentation(image);
+PFFile *imageFile = [PFFile fileWithName:@"image.png" data:imageData];
+
+PFObject *userPhoto = [PFObject objectWithClassName:@"UserPhoto"];
+userPhoto[@"imageName"] = @"My trip to Hawaii!";
+userPhoto[@"imageFile"] = imageFile;
+[userPhoto saveInBackground];
+```
+```swift
+let imageData = UIImagePNGRepresentation(image)
+let imageFile = PFFile(name:"image.png", data:imageData)
+
+var userPhoto = PFObject(className:"UserPhoto")
+userPhoto["imageName"] = "My trip to Hawaii!"
+userPhoto["imageFile"] = imageFile
+userPhoto.saveInBackground()
+```
+
+Your `PFFile` will be uploaded as part of the save operation on the `userPhoto` object. It's also possible to track a `PFFile`'s [upload and download progress](/docs/ios_guide#files-progress).
+
+Retrieving the image back involves calling one of the `getData` variants on the `PFFile`. Here we retrieve the image file off another `UserPhoto` named `anotherPhoto`:
+
+```objc
+PFFile *userImageFile = anotherPhoto[@"imageFile"];
+[userImageFile getDataInBackgroundWithBlock:^(NSData *imageData, NSError *error) {
+    if (!error) { UIImage *image = [UIImage imageWithData:imageData];
+    }
+}];
+```
+```swift
+let userImageFile = anotherPhoto["imageFile"] as PFFile
+userImageFile.getDataInBackgroundWithBlock {
+  (imageData: NSData!, error: NSError!) -> Void in
+  if error == nil {
+    let image = UIImage(data:imageData)
+  }
+}
+
+```
+
+## Progress
+
+It's easy to get the progress of both uploads and downloads using `PFFile` using `saveInBackgroundWithBlock:progressBlock:` and `getDataInBackgroundWithBlock:progressBlock:` respectively. For example:
+
+```objc
+NSData *data = [@"Working at Parse is great!" dataUsingEncoding:NSUTF8StringEncoding];
+PFFile *file = [PFFile fileWithName:@"resume.txt" data:data];
+[file saveInBackgroundWithBlock:^(BOOL succeeded, NSError *error) {
+  // Handle success or failure here ...
+} progressBlock:^(int percentDone) {
+  // Update your progress spinner here. percentDone will be between 0 and 100.
+}];
+```
+```swift
+let str = "Working at Parse is great!"
+let data = str.dataUsingEncoding(NSUTF8StringEncoding)
+let file = PFFile(name:"resume.txt", data:data)
+file.saveInBackgroundWithBlock {
+  (succeeded: Bool!, error: NSError!) -> Void in
+  // Handle success or failure here ...
+}, progressBlock: {
+  (percentDone: Int) -> Void in
+  // Update your progress spinner here. percentDone will be between 0 and 100.
+}
+```
+
+You can delete files that are referenced by objects using the [REST API](/docs/rest#files-deleting). You will need to provide the master key in order to be allowed to delete a file.
+
+If your files are not referenced by any object in your app, it is not possible to delete them through the REST API. You may request a cleanup of unused files in your app's Settings page. Keep in mind that doing so may break functionality which depended on accessing unreferenced files through their URL property. Files that are currently associated with an object will not be affected.
+
+# Analytics
+
+Parse provides a number of hooks for you to get a glimpse into the ticking heart of your app. We understand that it's important to understand what your app is doing, how frequently, and when.
+
+While this section will cover different ways to instrument your app to best take advantage of Parse's analytics backend, developers using Parse to store and retrieve data can already take advantage of metrics on Parse.
+
+Without having to implement any client-side logic, you can view real-time graphs and breakdowns (by device type, Parse class name, or REST verb) of your API Requests in your app's dashboard and save these graph filters to quickly access just the data you're interested in.
+
+
+## App-Open / Push Analytics
+
+Our initial analytics hook allows you to track your application being launched. By adding the following line to `application:didFinishLaunching:`, you'll begin to collect data on when and how often your application is opened.
+
+Our initial analytics hook allows you to track your application being launched. By adding the following line to `applicationDidFinishLaunching:`, you'll begin to collect data on when and how often your application is opened.
+
+<div class="content_option" data-platform="iOS">
+```objc
+[PFAnalytics trackAppOpenedWithLaunchOptions:launchOptions];
+```
+```swift
+PFAnalytics.trackAppOpenedWithLaunchOptions(launchOptions)
+```
+</div>
+
+<div class="content_option" data-platform="OSX">
+```objc
+[PFAnalytics trackAppOpenedWithLaunchOptions:nil];
+```
+```swift
+PFAnalytics.trackAppOpenedWithLaunchOptions(nil)
+```
+</div>
+
+Graphs and breakdowns of your statistics are accessible from your app's Dashboard.
+
+Further analytics are available around push notification delivery and open rates. Be sure to take a look at the [Tracking Pushes and App Opens subsection](/docs/push_guide#receiving-tracking/iOS) of our Push Guide for more detailed information on handling remote notification payloads and push-related callbacks.
+
+## Custom Analytics
+
+`PFAnalytics` also allows you to track free-form events, with a handful of `NSString` keys and values. These extra dimensions allow segmentation of your custom events via your app's Dashboard.
+
+Say your app offers search functionality for apartment listings, and you want to track how often the feature is used, with some additional metadata.
+
+```objc
+NSDictionary *dimensions = @{
+  // Define ranges to bucket data points into meaningful segments
+  @"priceRange": @"1000-1500",
+  // Did the user filter the query?
+  @"source": @"craigslist",
+  // Do searches happen more often on weekdays or weekends?
+  @"dayType": @"weekday"
+};
+// Send the dimensions to Parse along with the 'search' event
+[PFAnalytics trackEvent:@"search" dimensions:dimensions];
+```
+```swift
+let dimensions = [
+  // Define ranges to bucket data points into meaningful segments
+  "priceRange": "1000-1500",
+  // Did the user filter the query?
+  "source": "craigslist",
+  // Do searches happen more often on weekdays or weekends?
+  "dayType": "weekday"
+]
+// Send the dimensions to Parse along with the 'search' event
+PFAnalytics.trackEvent("search", dimensions:dimensions)
+```
+
+`PFAnalytics` can even be used as a lightweight error tracker &mdash; simply invoke the following and you'll have access to an overview of the rate and frequency of errors, broken down by error code, in your application: 
+
+```objc
+NSString *codeString = [NSString stringWithFormat:@"%d", [error code]];
+[PFAnalytics trackEvent:@"error" dimensions:@{ @"code": codeString }];
+```
+```swift
+let codeString = NSString(format:"%@", error.code)
+PFAnalytics.trackEvent("error", dimensions:["code": codeString])
+```
+
+Note that Parse currently only stores the first eight dimension pairs per call to `trackEvent:dimensions:`.
+
+# Config
+
+## Parse Config
+
+`PFConfig` is a way to configure your applications remotely by storing a single configuration object on Parse. It enables you to add things like feature gating or a simple "Message of the Day". To start using `PFConfig` you need to add a few key/value pairs (parameters) to your app on the Parse Config Dashboard.
+
+<%= image_tag 'docs/config_editor.png', :style => 'border: 1px solid #eee; width: 80%' %>
+
+After that you will be able to fetch the `PFConfig` on the client, like in this example:
+
+```objc
+[PFConfig getConfigInBackgroundWithBlock:^(PFConfig *config, NSError *error) {
+  NSNumber *number = config[@"winningNumber"];
+  NSLog(@"Yay! The number is %@!", [number stringValue]);
+}];
+```
+```swift
+PFConfig.getConfigInBackgroundWithBlock {
+  (config: PFConfig!, error: NSError!) -> Void in
+  let number = config["winningNumber"] as Int
+  NSLog("Yay! The number is %@!", number)
+}
+```
+
+## Retrieving Config
+
+`PFConfig` is built to be as robust and reliable as possible, even in the face of poor internet connections. Caching is used by default to ensure that the latest successfully fetched config is always available. In the below example we use `getConfigInBackgroundWithBlock` to retrieve the latest version of config from the server, and if the fetch fails we can simply fall back to the version that we successfully fetched before via `currentConfig`.
+
+```objc
+NSLog(@"Getting the latest config...");
+[PFConfig getConfigInBackgroundWithBlock:^(PFConfig *config, NSError *error) {
+  if (!error) {
+    NSLog(@"Yay! Config was fetched from the server.");
+  } else {
+    NSLog(@"Failed to fetch. Using Cached Config.");
+    config = [PFConfig currentConfig];
+  }
+
+  NSString *welcomeMessage = config[@"welcomeMessage"];
+  if (!welcomeMessage) {
+    NSLog(@"Falling back to default message.");
+    welcomeMessage = @"Welcome!";
+  }
+  NSLog(@"Welcome Messsage = %@", welcomeMessage);
+}];
+```
+```swift
+NSLog("Getting the latest config...");
+PFConfig.getConfigInBackgroundWithBlock {
+  (var config: PFConfig!, error: error!) -> Void in
+  if (!error) {
+    NSLog("Yay! Config was fetched from the server.")
+  } else {
+    NSLog("Failed to fetch. Using Cached Config.")
+    config = PFConfig.currentConfig()
+  }
+
+  var welcomeMessage: NSString? = config["welcomeMessage"] as? NSString
+  if welcomeMessage == nil {
+    NSLog("Falling back to default message.")
+    welcomeMessage = "Welcome!";
+  }
+
+  NSLog("Welcome Message = %@", welcomeMessage!)
+}];
+```
+
+## Current Config
+
+Every `PFConfig` instance that you get is always immutable. When you retrieve a new `PFConfig` in the future from the network, it will not modify any existing `PFConfig` instance, but will instead create a new one and make it available via `[PFConfig currentConfig]`. Therefore, you can safely pass around any `PFConfig` object and safely assume that it will not automatically change.
+
+It might be troublesome to retrieve the config from the server every time you want to use it. You can avoid this by simply using the cached `currentConfig` object and fetching the config only once in a while.
+
+```objc
+// Fetches the config at most once every 12 hours per app runtime
+const NSTimeInterval configRefreshInterval = 12.0 * 60.0 * 60.0;
+static NSDate *lastFetchedDate;
+if (lastFetchedDate == nil ||
+    [lastFetchedDate timeIntervalSinceNow] * -1.0 > configRefreshInterval) {
+  [PFConfig getConfigInBackgroundWithBlock:nil];
+  lastFetchedDate = [NSDate date];
+}
+```
+```swift
+// Fetches the config at most once every 12 hours per app runtime
+let configRefreshInterval: NSTimeInterval  = 12.0 * 60.0 * 60.0
+struct DateSingleton {
+    static var lastFetchedDate: NSDate? = nil
+}
+let date: NSDate? = DateSingleton.lastFetchedDate;
+if date == nil ||
+   date!.timeIntervalSinceNow * -1.0 > configRefreshInterval {
+  PFConfig.getConfigInBackgroundWithBlock(nil);
+  DateSingleton.lastFetchedDate = NSDate.date();
+}
+```
+
+
+## Parameters
+
+`PFConfig`  supports most of the data types supported by `PFObject`:
+
+*   NSString
+*   NSNumber
+*   NSDate
+*   PFFile
+*   PFGeoPoint
+*   NSArray
+*   NSDictionary
+
+We currently allow up to **100** parameters in your config and a total size of **128KB** across all parameters.
+
+# Crash Reporting
+
+<div class="content_option" data-platform="iOS">
+
+Crash Reporting allows you to find out how your app is crashing in the wild. You'll be able to see your most impactful crashes, complete with stack traces, device information, and more. To get started, head over to the [Quick Start](/apps/quickstart#analytics/crashreporting/ios/existing) to instrument your app.
+
+## Enabling
+
+To enable Crash Reporting, add this line to your AppDelegate before you initialize your Parse app keys:
+
+```objc
+// Enable Crash Reporting
+[ParseCrashReporting enable];
+
+// Setup Parse
+[Parse setApplicationId:@"parseAppId" clientKey:@"parseClientKey"];
+      ```
+```swift
+// Enable Crash Reporting
+ParseCrashReporting.enable();
+
+// Setup Parse
+Parse.setApplicationId("parseAppId", clientKey:"parseClientKey")
+```
+
+Once this is enabled, all crashes from your app will be sent to Parse and will show up in the analytics dashboard.
+
+## Symbolication
+
+It's important to send Parse the symbol files for each build of your app. This allows Parse to properly aggregate crash incidents together and show these crashes on the dashboard with proper symbols in the stack trace.
+
+There are two ways to upload your symbol files: automatically after each build in Xcode (view instructions in [Quick Start](/apps/quickstart#analytics/crashreporting/ios/existing)) and manually. We highly recommend doing the upload automatically so you don't have to remember every time you cut a release.
+
+To automatically upload symbol files for your application whenever you build your app:
+
+*   Download the latest version of [Parse CLI](/docs/cloud_code_guide#clt) %>
+*   Initialize a new Parse Cloud Code directory by running the following (for example, in the same directory as your Xcode project):
+
+```bash
+parse new
+```
+
+*   Add a new **Run Script** phase to the **Build Phases** of your App's target:
+
+```bash
+export PATH=/usr/local/bin:$PATH
+cd <path_to_cloudcode_folder>
+
+parse symbols "${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}"
+```
+
+Alternatively, you can manually upload symbol files using the command line tool:
+
+```bash
+parse symbols <dSYM/xcarchive/DWARF path>
+```
+
+The symbol files for your apps can be found in one of these locations, depending on your deployment workflow:
+
+*   An **xcarchive** file is what is generated when you "Archive" your application for distribution. You can locate the files via the Archives tab inside the Xcode Organizer.
+*   A **dSYM** file is the symbol file bundle for your application. It is usually generated only when building your application for 'Release' or 'Archiving' and can be found next to your .app bundle inside your Xcode DerivedData folder.
+*   **DWARF** - is the most low-level and most custom of packages we support and can be generated by stripping your application binary manually.
+
+Manual uploads can be useful when you've forgotten to upload symbol files for a build that has been released. You will see a message to symbolicate the stack traces when you're viewing a crash that hasn't been symbolicated.
+
+## Testing
+
+Once you've enabled Crash Reporting, you'll want to test to make sure your crashes are properly being sent to Parse. First, add the following method in one of your view controllers, or the App Delegate:
+
+```objc
+- (void)crash {
+    [NSException raise:NSGenericException format:@"Everything is ok. This is just a test crash."];
+}
+      ```
+```swift
+NSException(name:NSGenericException, reason:"Everything is ok. This is just a test crash.", userInfo:nil).raise()
+```
+
+Then, put this invocation in your main view controllers' `viewDidLoad`, or in `application:didFinishLaunchingWithOptions:` if you're using the App Delegate:
+
+```objc
+[self performSelector:@selector(crash) withObject:nil afterDelay:5.0];
+```
+```swift
+dispatch_after(
+    dispatch_time(DISPATCH_TIME_NOW, Int64(5.0 * Double(NSEC_PER_SEC))),
+    dispatch_get_main_queue(),
+    { () -> Void in self.crash()
+});
+```
+
+Next, follow these steps:
+
+1.  Build, run, and then stop the app.
+2.  Run the app without the debugger, which will catch crashes and prevent them from being sent to Parse. The easiest way to do this is to directly launch the app from the home screen.
+3.  Wait for the app to crash.
+4.  Run the app again. The app will automatically send the crash report to Parse on startup.
+
+At this point, go to the Crash Reporting dashboard under Analytics for your app and make sure you see the crash in the listing. It can take a few minutes for the crash to show up.
+
+## Workflow
+
+By using Crash Reporting, you can dramatically improve the quality of your app by reducing the number of crashes your end users experience. We recommend the following workflow to efficiently fix your crashes:
+
+1.  _Identify crashes to fix._
+The main view of the Crash Reporting dashboard shows all your crashes ordered by the number of occurrences. Typically, you'll want to start by fixing the crashes that are affecting the most users. You can click on each crash and get details such as the stack trace, OS versions, device types, and affected app versions.
+
+2.  _Fix a crash._
+Do some debugging and fix your crash in your client code.
+
+3.  _Bump your build version (CFBundleVersion) and build a new release._
+
+4.  _Mark the crash as resolved and release a new build to the App Store._
+Once resolved, the crash will no longer show up on the crash listings page with the default filters. If the crash does occur again in a later version, it will automatically be marked as unresolved, and will show up on the listing again.
+
+5.  Go back to step 1 and continue to improve your app!
+
+
+## Troubleshooting
+
+#### Why aren't my crashes showing up on the dashboard?
+
+Your app is probably not sending crash reports to Parse. Here are some things to check:
+
+*   Make sure you've enabled Crash Reporting in your App Delegate before you initialize Parse.
+*   If you're testing, make sure Xcode isn't catching the crash with the debugger. Build, run, stop the app, and then run it from the home screen.
+*   Crashes are sent on the next run of the app. Make sure the app isn't crashing again before it has a chance to send the crash information. If you're testing, you can ensure this by adding a delay.
+*   Crashes may take up to a minute to show up on the dashboard.
+*   Make sure you don't have any other crash reporting solutions linked to your application, as they might interfere with each other.
+
+#### Why aren't my crashes symbolicated?
+
+You probably have not uploaded symbol files for the build of the app associated with the crash. Here are some things to check:
+
+*   If you set up automatic uploading, verify that the uploads have worked by looking at the logs under the Report navigator.
+*   Make sure the logs are clean and there were no errors with the upload.
+*   If you uploaded symbol files for a crash that was previously unsymbolicated, a new crash will show up with the symbols. The old crash won't be updated with symbols, so you can go ahead and resolve that crash.
+*   If you are using custom dynamic frameworks and parts of your stack traces aren't symbolicated, make sure you uploaded symbols for all those frameworks as well as for the main application.
+
+</div>
+<div class="content_option" data-platform="OSX">
+  <div class="callout_red">
+    Crash Reporting is currently only available on iOS.
+  </div>
+</div>
+
+# The Local Datastore
+
+The Parse iOS/OSX SDK provides a local datastore which can be used to store and retrieve `PFObject`s, even when the network is unavailable. To enable this functionality, add `libsqlite3.dylib` and call `[Parse enableLocalDatastore]` before your call to `setApplicationId:clientKey:`.
+
+```
+@implementation AppDelegate
+
+- (void)application:(UIApplication *)application didFinishLaunchWithOptions:(NSDictionary *)options {
+  [Parse enableLocalDatastore];
+  [Parse setApplicationId:@"parseAppId" clientKey:@"parseClientKey"];
+}
+
+@end
+```
+
+There are a couple of side effects of enabling the local datastore that you should be aware of. When enabled, there will only be one instance of any given `PFObject`. For example, imagine you have an instance of the `"GameScore"` class with an `objectId` of `"xWMyZ4YEGZ"`, and then you issue a `PFQuery` for all instances of `"GameScore"` with that `objectId`. The result will be the same instance of the object you already have in memory.
+
+Another side effect is that the current user and current installation will be stored in the local datastore, so you can persist unsaved changes to these objects between runs of your app using the methods below.
+
+Calling the `saveEventually` method on a `PFObject` will cause the object to be pinned in the local datastore until the save completes. So now, if you change the current `PFUser` and call `[[PFUser currentUser] saveEventually]`, your app will always see the changes that you have made.
+
+
+## Pinning
+
+You can store a `PFObject` in the local datastore by pinning it. Pinning a `PFObject` is recursive, just like saving, so any objects that are pointed to by the one you are pinning will also be pinned. When an object is pinned, every time you update it by fetching or saving new data, the copy in the local datastore will be updated automatically. You don't need to worry about it at all.
+
+```objc
+PFObject *gameScore = [PFObject objectWithClassName:@"GameScore"];
+gameScore[@"score"] = 1337;
+gameScore[@"playerName"] = @"Sean Plott";
+gameScore[@"cheatMode"] = @NO;
+[gameScore pinInBackground];
+```
+```swift
+let gameScore = PFObject(className:"GameScore")
+gameScore["score"] = 1337
+gameScore["playerName"] = "Sean Plott"
+gameScore["cheatMode"] = false
+gameScore.pinInBackground()
+```
+
+If you have multiple objects, you can pin them all at once with the `pinAllInBackground` convenience method.
+
+```objc
+[PFObject pinAllInBackground:listOfObjects];
+```
+```swift
+PFObject.pinAllInBackground(listOfObjects)
+```
+
+
+## Retrieving from the Local Datastore
+
+Storing objects is great, but it's only useful if you can then get the objects back out later. Retrieving an object from the local datastore works just like retrieving one over the network. The only difference is calling the `fromLocalDatastore` method to tell the `PFQuery` where to look for its results.
+
+```objc
+PFQuery *query = [PFQuery queryWithClassName:@"GameScore"];
+[query fromLocalDatastore];
+[[query getObjectInBackgroundWithId:@"xWMyZ4YE"] continueWithBlock:^id(BFTask *task) {
+  if (task.error) {
+    // Something went wrong.
+    return task;
+  }
+
+  // task.result will be your game score
+  return task;
+}];
+```
+
+
+## Querying the Local Datastore
+
+Often, you'll want to find a whole list of objects that match certain criteria, instead of getting a single object by id. To do that, you can use a [PFQuery](#queries). Any `PFQuery` can be used with the local datastore just as with the network. The results will include any object you have pinned that matches the query. Any unsaved changes you have made to the object will be considered when evaluating the query. So you can find a local object that matches, even if it was never returned from the server for this particular query.
+
+```objc
+PFQuery *query = [PFQuery queryWithClassName:@"GameScore"];
+[query fromLocalDatastore];
+[query whereKey:@"playerName" equalTo:@"Joe Bob"];
+[[query findObjectsInBackground] continueWithBlock:^id(BFTask *task) {
+  if (task.error) {
+    NSLog(@"Error: %@", task.error);
+    return task;
+  }
+
+  NSLog(@"Retrieved %d", task.result.count);
+  return task;
+}];
+```
+
+
+## Unpinning
+
+When you are done with an object and no longer need it to be in the local datastore, you can simply unpin it. This will free up disk space on the device and keep your queries on the local datastore running quickly.
+
+```objc
+[gameScore unpinInBackground];
+```
+```swift
+gameScore.unpinInBackground()
+```
+
+There's also a method to unpin several objects at once.
+
+```objc
+[PFObject unpinAllInBackground:listOfObjects];
+```
+```swift
+PFObject.unpinAllInBackground(listOfObjects)
+```
+
+
+## Pinning with Labels
+
+Manually pinning and unpinning each object individual is a bit like using `malloc` and `free`. It is a very powerful tool, but it can be difficult to manage what objects get stored in complex scenarios. For example, imagine you are making a game with separate high score lists for global high scores and your friends' high scores. If one of your friends happens to have a globally high score, you need to make sure you don't unpin them completely when you remove them from one of the cached queries. To make these scenarios easier, you can also pin with a label. Labels indicate a group of objects that should be stored together.
+
+```objc
+// Add several objects with a label.
+[PFObject pinAllInBackground:someGameScores withName:@"MyScores"];
+
+// Add another object with the same label.
+[anotherGameScore pinInBackgroundWithName:@"MyScores"];
+```
+```swift
+// Add several objects with a label.
+PFObject.pinAllInBackground(objects:someGameScores withName:"MyScores")
+
+// Add another object with the same label.
+anotherGameScore.pinInBackgroundWithName("MyScores")
+```
+
+To unpin all of the objects with the same label at the same time, you can pass a label to the unpin methods. This saves you from having to manually track which objects are in each group you care about.
+
+```objc
+[PFObject unpinAllObjectsInBackgroundWithName:@"MyScores"];
+```
+```swift
+PFObject.unpinAllObjectsInBackgroundWithName("MyScores")
+```
+
+Any object will stay in the datastore as long as it is pinned with any label. In other words, if you pin an object with two different labels, and then unpin it with one label, the object will stay in the datastore until you also unpin it with the other label.
+
+
+## Caching Query Results
+
+Pinning with labels makes it easy to cache the results of queries. You can use one label to pin the results of each different query. To get new results from the network, just do a query and update the pinned objects.
+
+```objc
+PFQuery *query = [PFQuery queryWithClassName:@"GameScore"];
+[query orderByDescending:@"score"];
+
+// Query for new results from the network
+[[query findObjectsInBackground] continueWithSuccessBlock:^id(BFTask *task) {
+  return [[PFObject unpinAllObjectsInBackgroundWithName:@"HighScores"] continueWithSuccessBlock:^id(BFTask *ignored) {
+    // Cache the new results.
+    NSArray *scores = task.result;
+    return [PFObject pinAllInBackground:scores withName:@"HighScores"];
+  }];
+}];
+```
+```swift
+let query = PFQuery(className:"GameScore")
+query.orderByDescending("score")
+
+// Query for new results from the network
+query.findObjectsInBackground().continueWithSuccessBlock({
+  (ignored: BFTask!) -> AnyObject! in
+
+  // Cache new results
+  let scores = task.result as NSArray
+  return PFObject.pinAllInBackground(scores withName:"HighScores")
+})
+```
+
+When you want to get the cached results for the query, you can then
+      run the same query against the local datastore.
+
+```objc
+PFQuery *query = [PFQuery queryWithClassName:@"GameScore"];
+[query fromLocalDatastore];
+[query orderByDescending:@"score"];
+
+[[query findObjectsInBackground] continueWithBlock:^id(BFTask *task) {
+  if (task.error) {
+    // Something went wrong.
+    return task;
+  }
+
+  // Yay! Cached scores!
+  return task;
+}];
+```
+```swift
+let query = PFQuery(className:"GameScore")
+query.fromLocalDatastore()
+query.orderByDescending("score")
+
+query.findObjectsInBackground().continueWithBlock({
+  (task: BFTask!) -> AnyObject! in
+    if task.error != nil { // There was an error. return task
+    }
+
+    // Yay! Cached scores!
+    return task
+})
+```
+
+
+## Syncing Local Changes
+
+Once you've saved some changes locally, there are a few different ways you can save those changes back to Parse over the network. The easiest way to do this is with `saveEventually`. When you call `saveEventually` on a `PFObject`, it will be pinned until it can be saved. The SDK will make sure to save the object the next time the network is available.
+
+```objc
+[gameScore saveEventually];
+```
+```swift
+gameScore.saveEventually()
+```
+
+If you'd like to have more control over the way objects are synced, you can keep them in the local datastore until you are ready to save them yourself using `saveInBackground`. To manage the set of objects that need to be saved, you can again use a label. The `fromPinWithName:` method on `PFQuery` makes it easy to fetch just the objects you care about.
+
+```objc
+PFQuery *query = [PFQuery queryWithClassName:@"GameScore"];
+[query fromPinWithName:@"MyChanges"];
+[[query findObjectsInBackground] continueWithBlock:^id(BFTask *task) {
+  NSArray *scores = task.result;
+  for (PFObject *score in scores) {
+    [[score saveInBackground] continueWithSuccessBlock:^id(BFTask *task) { return [score unpinInBackground];
+    }];
+  }
+  return task;
+}];
+```
+```swift
+let query = PFQuery(className:"GameScore")
+query.fromPinWithName("MyChanges")
+query.findObjectsInBackground().continueWithBlock({
+  (task: BFTask!) -> AnyObject! in
+  let scores = task.result as NSArray
+  for score in scores {
+      score.saveInBackground().continueWithSuccessBlock({   (task: BFTask!) -> AnyObject! in   return score.unpinInBackground()
+      })
+  }
+  return task
+})
+```
+
+# Users
+
+At the core of many apps, there is a notion of user accounts that lets users access their information in a secure manner. We provide a specialized user class called `PFUser` that automatically handles much of the functionality required for user account management.
+
+With this class, you'll be able to add user account functionality in your app.
+
+`PFUser` is a subclass of `PFObject` and has all the same features, such as flexible schema, automatic persistence, and a key value interface. All the methods that are on `PFObject` also exist in `PFUser`. The difference is that PFUser has some special additions specific to user accounts.
+
+## Properties
+
+`PFUser` has several properties that set it apart from `PFObject`:
+
+*   username: The username for the user (required).
+*   password: The password for the user (required on signup).
+*   email: The email address for the user (optional).
+
+We'll go through each of these in detail as we run through the various use cases for users. Keep in mind that if you set `username` and `email` through these properties, you do not need to set it using the `setObject:forKey:` method &mdash; this is set for you automatically.
+
+
+## Signing Up
+
+The first thing your app will do is probably ask the user to sign up. The following code illustrates a typical sign up:
+
+```objc
+- (void)myMethod {
+    PFUser *user = [PFUser user];
+    user.username = @"my name";
+    user.password = @"my pass";
+    user.email = @"email@example.com";
+
+    // other fields can be set just like with PFObject
+    user[@"phone"] = @"415-392-0202";
+
+    [user signUpInBackgroundWithBlock:^(BOOL succeeded, NSError *error) {
+      if (!error) {   // Hooray! Let them use the app now.
+      } else {   NSString *errorString = [error userInfo][@"error"];   // Show the errorString somewhere and let the user try again.
+      }
+    }];
+}
+```
+```swift
+func myMethod() {
+  var user = PFUser()
+  user.username = "myUsername"
+  user.password = "myPassword"
+  user.email = "email@example.com"
+  // other fields can be set just like with PFObject
+  user["phone"] = "415-392-0202"
+
+  user.signUpInBackgroundWithBlock {
+    (succeeded: Bool!, error: NSError!) -> Void in
+    if error == nil {
+      // Hooray! Let them use the app now.
+    } else {
+      let errorString = error.userInfo["error"] as NSString
+      // Show the errorString somewhere and let the user try again.
+    }
+  }
+}
+```
+
+This call will asynchronously create a new user in your Parse App. Before it does this, it also checks to make sure that both the username and email are unique. Also, it securely hashes the password in the cloud. We never store passwords in plaintext, nor will we ever transmit passwords back to the client in plaintext.
+
+Note that we used the `signUp` method, not the `save` method. New `PFUser`s should always be created using the `signUp` method. Subsequent updates to a user can be done by calling `save`.
+
+The `signUp` method comes in various flavors, with the ability to pass back errors, and also synchronous versions. As usual, we highly recommend using the asynchronous versions when possible, so as not to block the UI in your app. You can read more about these specific methods in our [API docs](/docs/ios/).
+
+If a signup isn't successful, you should read the error object that is returned. The most likely case is that the username or email has already been taken by another user. You should clearly communicate this to your users, and ask them try a different username.
+
+You are free to use an email address as the username. Simply ask your users to enter their email, but fill it in the username property &mdash; `PFUser` will work as normal. We'll go over how this is handled in the reset password section.
+
+## Logging In
+
+Of course, after you allow users to sign up, you need to let them log in to their account in the future. To do this, you can use the class method `logInWithUsernameInBackground:password:`.
+
+```objc
+[PFUser logInWithUsernameInBackground:@"myname" password:@"mypass"
+  block:^(PFUser *user, NSError *error) {
+    if (user) { // Do stuff after successful login.
+    } else { // The login failed. Check error to see why.
+    }
+}];
+```
+```swift
+PFUser.logInWithUsernameInBackground("myname", password:"mypass") {
+  (user: PFUser!, error: NSError!) -> Void in
+  if user != nil {
+    // Do stuff after successful login.
+  } else {
+    // The login failed. Check error to see why.
+  }
+}
+```
+
+## Verifying Emails
+
+Enabling email verification in an application's settings allows the application to reserve part of its experience for users with confirmed email addresses. Email verification adds the `emailVerified` key to the `PFUser` object. When a `PFUser`'s `email` is set or modified, `emailVerified` is set to `false`. Parse then emails the user a link which will set `emailVerified` to `true`.
+
+There are three `emailVerified` states to consider:
+
+1.  `true` - the user confirmed his or her email address by clicking on the link Parse emailed them. `PFUsers` can never have a `true` value when the user account is first created.
+2.  `false` - at the time the `PFUser` object was last refreshed, the user had not confirmed his or her email address. If `emailVerified` is `false`, consider calling `refresh:` on the `PFUser`.
+3.  _missing_ - the `PFUser` was created when email verification was off or the `PFUser` does not have an `email`.
+
+
+## Current User
+
+It would be bothersome if the user had to log in every time they open your app. You can avoid this by using the cached `currentUser` object.
+
+Whenever you use any signup or login methods, the user is cached on disk. You can treat this cache as a session, and automatically assume the user is logged in:
+
+```objc
+PFUser *currentUser = [PFUser currentUser];
+if (currentUser) {
+    // do stuff with the user
+} else {
+    // show the signup or login screen
+}
+```
+```swift
+var currentUser = PFUser.currentUser()
+if currentUser != nil {
+  // Do stuff with the user
+} else {
+  // Show the signup or login screen
+}
+```
+
+You can clear the current user by logging them out:
+
+```objc
+[PFUser logOut];
+PFUser *currentUser = [PFUser currentUser]; // this will now be nil
+```
+```swift
+PFUser.logOut()
+var currentUser = PFUser.currentUser() // this will now be nil
+```
+
+## Anonymous Users
+
+Being able to associate data and objects with individual users is highly valuable, but sometimes you want to be able to do this without forcing a user to specify a username and password.
+
+An anonymous user is a user that can be created without a username and password but still has all of the same capabilities as any other `PFUser`. After logging out, an anonymous user is abandoned, and its data is no longer accessible.
+
+You can create an anonymous user using `PFAnonymousUtils`:
+
+```objc
+[PFAnonymousUtils logInWithBlock:^(PFUser *user, NSError *error) {
+    if (error) {
+      NSLog(@"Anonymous login failed.");
+    } else {
+      NSLog(@"Anonymous user logged in.");
+    }
+}];
+```
+```swift
+PFAnonymousUtils.logInWithBlock {
+  (user: PFUser!, error: NSError!) -> Void in
+  if error != nil {
+    NSLog("Anonymous login failed.")
+  } else {
+    NSLog("Anonymous user logged in.")
+  }
+}
+```
+
+You can convert an anonymous user into a regular user by setting the username and password, then calling `signUp`, or by logging in or linking with a service like [Facebook](#fbusers) or [Twitter](#twitterusers). The converted user will retain all of its data.  To determine whether the current user is an anonymous user, you can check `PFAnonymousUtils isLinkedWithUser`:
+
+```objc
+if ([PFAnonymousUtils isLinkedWithUser:[PFUser currentUser]]) {
+    [self enableSignUpButton];
+} else {
+    [self enableLogOutButton];
+}
+```
+```swift
+if PFAnonymousUtils.isLinkedWithUser(PFUser.current()) {
+  self.enableSignUpButton()
+} else {
+  self.enableLogOutButton()
+}
+```
+
+Anonymous users can also be automatically created for you without requiring a network request, so that you can begin working with your user immediately when your application starts.  When you enable automatic anonymous user creation at application startup, `[PFUser currentUser]` will never be `nil`. The user will automatically be created in the cloud the first time the user or any object with a relation to the user is saved.  Until that point, the user's object ID will be `nil`.  Enabling automatic user creation makes associating data with your users painless.  For example, in your `application:didFinishLaunchingWithOptions:` function, you might write:
+
+```objc
+[PFUser enableAutomaticUser];
+[[PFUser currentUser] incrementKey:@"RunCount"];
+[[PFUser currentUser] saveInBackground];
+```
+```swift
+PFUser.enableAutomaticUser()
+PFUser.currentUser().incrementKey("RunCount")
+PFUser.currentUser().saveInBackground()
+```
+
+## Setting the Current User
+
+If you’ve created your own authentication routines, or otherwise logged in a user on the server side, you can now pass the session token to the client and use the `become` method. This method will ensure the session token is valid before setting the current user.
+
+```objc
+[PFUser becomeInBackground:@"session-token-here" block:^(PFUser *user, NSError *error) {
+  if (error) {
+    // The token could not be validated.
+  } else {
+    // The current user is now set to user.
+  }
+}];
+```
+```swift
+PFUser.becomeInBackground("session-token-here", {
+  (user: PFUser!, error: NSError!) -> Void in
+  if error != nil {
+    // The token could not be validated.
+  } else {
+    // The current user is now set to user.
+  }
+})
+```
+
+## Security For User Objects
+
+The `PFUser` class is secured by default. Data stored in a `PFUser` can only be modified by that user. By default, the data can still be read by any client. Thus, some `PFUser` objects are authenticated and can be modified, whereas others are read-only.
+
+Specifically, you are not able to invoke any of the `save` or `delete` methods unless the `PFUser` was obtained using an authenticated method, like `logIn` or `signUp`. This ensures that only the user can alter their own data.
+
+The following illustrates this security policy:
+
+```objc
+PFUser *user = [PFUser logInWithUsername:@"my_username" password:@"my_password"];
+user.username = "my_new_username"; // attempt to change username
+[user save]; // This succeeds, since the user was authenticated on the device
+
+// Get the user from a non-authenticated method
+PFQuery *query = [PFUser query];
+PFUser *userAgain = (PFUser *)[query getObjectWithId:user.objectId];
+
+userAgain.username = "another_username";
+
+// This will throw an exception, since the PFUser is not authenticated
+[userAgain save];
+```
+```swift
+var user = PFUser.logInWithUsername("my_username", password:"my_password")
+user.username = "my_new_username" // attempt to change username
+user.save() // This succeeds, since the user was authenticated on the device
+
+// Get the user from a non-authenticated method
+var query = PFUser.query()
+var userAgain = query.getObjectWithId(user.objectId) as PFUser
+
+userAgain.username = "another_username"
+
+// This will crash, since the PFUser is not authenticated
+userAgain.save()
+```
+
+The `PFUser` obtained from `currentUser` will always be authenticated.
+
+If you need to check if a `PFUser` is authenticated, you can invoke the `isAuthenticated` method. You do not need to check `isAuthenticated` with `PFUser` objects that are obtained via an authenticated method.
+
+## Security For Other Objects
+
+The same security model that applies to the `PFUser` can be applied to other objects. For any object, you can specify which users are allowed to read the object, and which users are allowed to modify an object. To support this type of security, each object has an [access control list](http://en.wikipedia.org/wiki/Access_control_list), implemented by the `PFACL` class.
+
+The simplest way to use a `PFACL` is to specify that an object may only be read or written by a single user. To create such an object, there must first be a logged in `PFUser`. Then, the `ACLWithUser` method generates a `PFACL` that limits access to that user. An object's ACL is updated when the object is saved, like any other property. Thus, to create a private note that can only be accessed by the current user:
+
+```objc
+PFObject *privateNote = [PFObject objectWithClassName:@"Note"];
+privateNote[@"content"] = @"This note is private!";
+privateNote.ACL = [PFACL ACLWithUser:[PFUser currentUser]];
+[privateNote saveInBackground];
+```
+```swift
+var privateNote = PFObject(className:"Note")
+privateNote["content"] = "This note is private!"
+privateNote.ACL = PFACL.ACLWithUser(PFUser.currentUser())
+privateNote.saveInBackground()
+```
+
+This note will then only be accessible to the current user, although it will be accessible to any device where that user is signed in. This functionality is useful for applications where you want to enable access to user data across multiple devices, like a personal todo list.
+
+Permissions can also be granted on a per-user basis. You can add permissions individually to a `PFACL` using `setReadAccess:forUser:` and `setWriteAccess:forUser:`. For example, let's say you have a message that will be sent to a group of several users, where each of them have the rights to read and delete that message:
+
+```objc
+PFObject *groupMessage = [PFObject objectWithClassName:@"Message"];
+PFACL *groupACL = [PFACL ACL];
+
+// userList is an NSArray with the users we are sending this message to.
+for (PFUser *user in userList) {
+    [groupACL setReadAccess:YES forUser:user];
+    [groupACL setWriteAccess:YES forUser:user];
+}
+
+groupMessage.ACL = groupACL;
+[groupMessage saveInBackground];
+```
+```swift
+var groupMessage = PFObject(className:"Message")
+var groupACL = PFACL.ACL()
+
+// userList is an NSArray with the users we are sending this message to.
+for (user : PFUser in userList) {
+    groupACL.setReadAccess(true, forUser:user)
+    groupACL.setWriteAccess(true, forUser:user)
+}
+
+groupMessage.ACL = groupACL
+groupMessage.saveInBackground()
+```
+
+You can also grant permissions to all users at once using `setPublicReadAccess:` and `setPublicWriteAccess:`. This allows patterns like posting comments on a message board. For example, to create a post that can only be edited by its author, but can be read by anyone:
+
+```objc
+PFObject *publicPost = [PFObject objectWithClassName:@"Post"];
+PFACL *postACL = [PFACL ACLWithUser:[PFUser currentUser]];
+[postACL setPublicReadAccess:YES];
+publicPost.ACL = postACL;
+[publicPost saveInBackground];
+```
+```swift
+var publicPost = PFObject(className:"Post")
+var postACL = PFACL.ACLWithUser(PFUser.currentUser())
+postACL.setPublicReadAccess(true)
+publicPost.ACL = postACL
+publicPost.saveInBackground()
+```
+
+To help ensure that your users' data is secure by default, you can set a default ACL to be applied to all newly-created `PFObjects`:
+
+```objc
+[PFACL setDefaultACL:defaultACL withAccessForCurrentUser:YES];
+```
+```swift
+PFACL.setDefaultACL(defaultACL, withAccessForCurrentUser:true)
+```
+
+In the code above, the second parameter to setDefaultACL tells Parse to ensure that the default ACL assigned at the time of object creation allows read and write access to the current user at that time.  Without this setting, you would need to reset the defaultACL every time a user logs in or out so that the current user would be granted access appropriately.  With this setting, you can ignore changes to the current user until you explicitly need to grant different kinds of access.
+
+Default ACLs make it easy to create apps that follow common access patterns. An application like Twitter, for example, where user content is generally visible to the world, might set a default ACL such as:
+
+```objc
+PFACL *defaultACL = [PFACL ACL];
+[defaultACL setPublicReadAccess:YES];
+[PFACL setDefaultACL:defaultACL withAccessForCurrentUser:YES];
+```
+```swift
+var defaultACL = PFACL.ACL()
+defaultACL.setPublicReadAccess(true)
+PFACL.setDefaultACL(defaultACL, withAccessForCurrentUser:true)
+```
+
+For an app like Dropbox, where a user's data is only accessible by the user itself unless explicit permission is given, you would provide a default ACL where only the current user is given access:
+
+```objc
+[PFACL setDefaultACL:[PFACL ACL] withAccessForCurrentUser:YES];
+```
+```swift
+PFACL.setDefaultACL(PFACL.ACL(), withAccessForCurrentUser:true)
+```
+
+For an application that logs data to Parse but doesn't provide any user access to that data, you would deny access to the current user while providing a restrictive ACL:
+
+```objc
+[PFACL setDefaultACL:[PFACL ACL] withAccessForCurrentUser:NO];
+```
+```swift
+PFACL.setDefaultACL(PFACL.ACL(), withAccessForCurrentUser:false)
+```
+
+Operations that are forbidden, such as deleting an object that you do not have write access to, result in a `kPFErrorObjectNotFound` error code. For security purposes, this prevents clients from distinguishing which object ids exist but are secured, versus which object ids do not exist at all.
+
+## Resetting Passwords
+
+It's a fact that as soon as you introduce passwords into a system, users will forget them. In such cases, our library provides a way to let them securely reset their password.
+
+To kick off the password reset flow, ask the user for their email address, and call:
+
+```objc
+[PFUser requestPasswordResetForEmailInBackground:@"email@example.com"];
+```
+```swift
+PFUser.requestPasswordResetForEmailInBackground("email@example.com")
+```
+
+This will attempt to match the given email with the user's email or username field, and will send them a password reset email. By doing this, you can opt to have users use their email as their username, or you can collect it separately and store it in the email field.
+
+The flow for password reset is as follows:
+
+1.  User requests that their password be reset by typing in their email.
+2.  Parse sends an email to their address, with a special password reset link.
+3.  User clicks on the reset link, and is directed to a special Parse page that will allow them type in a new password.
+4.  User types in a new password. Their password has now been reset to a value they specify.
+
+Note that the messaging in this flow will reference your app by the name that you specified when you created this app on Parse.
+
+## Querying
+
+To query for users, you need to use the special user query:
+
+```objc
+PFQuery *query = [PFUser query];
+[query whereKey:@"gender" equalTo:@"female"]; // find all the women
+NSArray *girls = [query findObjects];
+```
+```swift
+var query = PFUser.query()
+query.whereKey("gender", equalTo:"female")
+var girls = query.findObjects()
+```
+
+In addition, you can use `getUserObjectWithId:objectId` to get a `PFUser` by id.
+
+## Associations
+
+Associations involving a `PFUser` work right out of the box. For example, let's say you're making a blogging app. To store a new post for a user and retrieve all their posts:
+
+```objc
+PFUser *user = [PFUser currentUser];
+
+// Make a new post
+PFObject *post = [PFObject objectWithClassName:@"Post"];
+post[@"title"] = @"My New Post";
+post[@"body"] = @"This is some great content.";
+post[@"user"] = user;
+[post save];
+
+// Find all posts by the current user
+PFQuery *query = [PFQuery queryWithClassName:@"Post"];
+[query whereKey:@"user" equalTo:user];
+NSArray *usersPosts = [query findObjects];
+```
+```swift
+var user = PFUser.currentUser()
+
+// Make a new post
+var post = PFObject(className:"Post")
+post["title"] = "My New Post"
+post["body"] = "This is some great content."
+post["user"] = user
+post.save()
+```
+
+## Users in the Data Browser
+
+The User class is a special class that is dedicated to storing `PFUser` objects. In the data browser, you'll see a little person icon next to the User class:
+
+<%= image_tag 'docs/user_icon.png', :style => 'border: 1px solid #eee' %>
+
+# Roles
+
+As your app grows in scope and user-base, you may find yourself needing more coarse-grained control over access to pieces of your data than user-linked ACLs can provide. To address this requirement, Parse supports a form of [Role-based Access Control](http://en.wikipedia.org/wiki/Role-based_access_control). Roles provide a logical way of grouping users with common access privileges to your Parse data. Roles are named objects that contain users and other roles.  Any permission granted to a role is implicitly granted to its users as well as to the users of any roles that it contains.
+
+For example, in your application with curated content, you may have a number of users that are considered "Moderators" and can modify and delete content created by other users.  You may also have a set of users that are "Administrators" and are allowed all of the same privileges as Moderators, but can also modify the global settings for the application. By adding users to these roles, you can ensure that new users can be made moderators or administrators, without having to manually grant permission to every resource for each user.
+
+We provide a specialized class called `PFRole` that represents these role objects in your client code.  `PFRole` is a subclass of `PFObject`, and has all of the same features, such as a flexible schema, automatic persistence, and a key value interface.  All the methods that are on `PFObject` also exist on `PFRole`.  The difference is that `PFRole` has some additions specific to management of roles.
+
+## Properties
+
+`PFRole` has several properties that set it apart from `PFObject`:
+
+*   name: The name for the role.  This value is required, and can only be set once as a role is being created.  The name must consist of alphanumeric characters, spaces, -, or _.  This name will be used to identify the Role without needing its objectId.
+*   users: A [relation](#objects-pointers) to the set of users that will inherit permissions granted to the containing role.
+*   roles: A [relation](#objects-pointers) to the set of roles whose users and roles will inherit permissions granted to the containing role.
+
+
+## Security for Role Objects
+
+The `PFRole` uses the same security scheme (ACLs) as all other objects on Parse, except that it requires an ACL to be set explicitly. Generally, only users with greatly elevated privileges (e.g. a master user or Administrator) should be able to create or modify a Role, so you should define its ACLs accordingly.  Remember, if you give write-access to a `PFRole` to a user, that user can add other users to the role, or even delete the role altogether.
+ To create a new `PFRole`, you would write:
+
+```objc
+// By specifying no write privileges for the ACL, we can ensure the role cannot be altered.
+PFACL *roleACL = [PFACL ACL];
+[roleACL setPublicReadAccess:YES];
+PFRole *role = [PFRole roleWithName:@"Administrator" acl:roleACL];
+[role saveInBackground];
+```
+```swift
+// By specifying no write privileges for the ACL, we can ensure the role cannot be altered.
+var roleACL = PFACL.ACL()
+roleACL.setPublicReadAccess(true)
+var role = PFRole.roleWithName("Administrator", acl:roleACL)
+role.saveInBackground()
+```
+
+You can add users and roles that should inherit your new role's permissions through the "users" and "roles" relations on `PFRole`:
+
+```objc
+PFRole *role = [PFRole roleWithName:roleName acl:roleACL];
+for (PFUser *user in usersToAddToRole) {
+  [role.users addObject:user];
+}
+for (PFRole *childRole in rolesToAddToRole) {
+  [role.roles addObject:childRole];
+}
+[role saveInBackground];
+```
+```swift
+var role = PFRole.roleWithName(roleName, acl:roleACL)
+for user in usersToAddToRole {
+  role.users.addObject(user)
+}
+for childRole in rolesToAddToRole {
+  role.roles.addObject(childRole)
+}
+role.saveInBackground()
+```
+
+Take great care when assigning ACLs to your roles so that they can only be modified by those who should have permissions to modify them.
+
+
+## Security for Other Objects
+
+Now that you have created a set of roles for use in your application, you can use them with ACLs to define the privileges that their users will receive. Each `PFObject` can specify a `PFACL`, which provides an access control list that indicates which users and roles should be granted read or write access to the object.
+
+Giving a role read or write permission to an object is straightforward.  You can either use the `PFRole`:
+
+```objc
+PFRole *moderators = /* Query for some PFRole */;
+PFObject *wallPost = [PFObject objectWithClassName:@"WallPost"];
+PFACL *postACL = [PFACL ACL];
+[postACL setWriteAccess:YES forRole:moderators];
+wallPost.ACL = postACL;
+[wallPost saveInBackground];
+```
+```swift
+var moderators = /* Query for some PFRole */
+var wallPost = PFObject(className:"WallPost")
+var postACL = PFACL.ACL()
+postACL.setWriteAccess(true, forRole:moderators)
+wallPost.ACL = postACL
+wallPost.saveInBackground()
+```
+
+You can avoid querying for a role by specifying its name for the ACL:
+
+```objc
+PFObject *wallPost = [PFObject objectWithClassName:@"WallPost"];
+PFACL *postACL = [PFACL ACL];
+[postACL setWriteAccess:YES forRoleWithName:@"Moderators"];
+wallPost.ACL = postACL;
+[wallPost saveInBackground];
+```
+```swift
+var wallPost = PFObject(className:"WallPost")
+var postACL = PFACL.ACL()
+postACL.setWriteAccess(true, forRoleWithName:"Moderators")
+wallPost.ACL = postACL
+wallPost.saveInBackground()
+```
+
+Role-based `PFACL`s can also be used when specifying default ACLs for your application, making it easy to protect your users' data while granting access to users with additional privileges.  For example, a moderated forum application might specify a default ACL like this:
+
+```objc
+PFACL *defaultACL = [PFACL ACL];
+// Everybody can read objects created by this user
+[defaultACL setPublicReadAccess:YES];
+// Moderators can also modify these objects
+[defaultACL setWriteAccess:YES forRoleWithName:@"Moderators"];
+// And the user can read and modify its own objects
+[PFACL setDefaultACL:defaultACL withAccessForCurrentUser:YES];
+```
+```swift
+var defaultACL = PFACL.ACL()
+// Everybody can read objects created by this user
+defaultACL.setPublicReadAccess(true)
+// Moderators can also modify these objects
+defaultACL.setWriteAccess(true, forRoleWithName:"Moderators")
+// And the user can read and modify its own objects
+PFACL.setDefaultACL(defaultACL, withAccessForCurrentUser:true)
+```
+
+## Role Hierarchy
+
+As described above, one role can contain another, establishing a parent-child relationship between the two roles. The consequence of this relationship is that any permission granted to the parent role is implicitly granted to all of its child roles.
+
+These types of relationships are commonly found in applications with user-managed content, such as forums. Some small subset of users are "Administrators", with the highest level of access to tweaking the application's settings, creating new forums, setting global messages, and so on. Another set of users are "Moderators", who are responsible for ensuring that the content created by users remains appropriate. Any user with Administrator privileges should also be granted the permissions of any Moderator. To establish this relationship, you would make your "Administrators" role a child role of "Moderators", like this:
+
+```objc
+PFRole *administrators = /* Your "Administrators" role */;
+PFRole *moderators = /* Your "Moderators" role */;
+[moderators.roles addObject:administrators];
+[moderators saveInBackground];
+```
+```swift
+var administrators = /* Your "Administrators" role */
+var moderators = /* Your "Moderators" role */
+moderators.roles.addObject(administrators)
+moderators.saveInBackground()
+```
+
+# Facebook Users
+
+<div class="content_option" data-platform="iOS">
+
+Parse provides an easy way to integrate Facebook with your application. The Facebook SDK can be used with our SDK, and is integrated with the `PFUser` class to make linking your users to their Facebook identities easy.
+
+<div class="callout_green">
+  Learn how to use Parse with the Facebook API to create a profile viewer application. The [Integrating Facebook in iOS tutorial](/tutorials/integrating-facebook-in-ios) will teach you how to create and login `PFUsers` through Facebook and make queries to the Facebook Graph API.
+</div>
+
+Using our Facebook integration, you can associate an authenticated Facebook user with a `PFUser`. With just a few lines of code, you'll be able to provide a "log in with Facebook" option in your app, and be able to save the user's data to Parse.
+
+## Setup
+
+To start using Facebook with Parse, you need to:
+
+1.  [Set up a Facebook app](https://developers.facebook.com/apps), if you haven't already.
+2.  Add your application's Facebook Application ID on your Parse application's settings page.
+3.  Follow Facebook's instructions for [getting started with the Facebook SDK](https://developers.facebook.com/docs/getting-started/facebook-sdk-for-ios/) to create an app linked to the Facebook SDK. Double-check that you have added FacebookAppID and URL Scheme values to your application's .plist file.
+4.  Download and unzip [Parse iOS SDK](/downloads/ios/parse-library/latest), if you haven't already.
+5.  Add `ParseFacebookUtils.framework` to your Xcode project, by dragging it into your project folder target.
+6.  Add the following where you initialize the Parse SDK, for example, like in `application:didFinishLaunchingWithOptions:`
+
+```objc
+#import <ParseFacebookUtils/PFFacebookUtils.h>
+
+@implementation AppDelegate
+
+- (void)application:(UIApplication *)application didFinishLaunchWithOptions:(NSDictionary *)options {
+  [Parse setApplicationId:@"parseAppId" clientKey:@"parseClientKey"];
+  [PFFacebookUtils initializeFacebook];
+}
+```
+```swift
+func application(application: UIApplication, didFinishLaunchingWithOptions launchOptions: [NSObject: AnyObject]?) -> Bool {
+    Parse.setApplicationId("parseAppId", clientKey:"parseClientKey")
+    PFFacebookUtils.initializeFacebook()
+}
+```
+7.  In your app delegate, add the following handlers:
+```objc
+- (BOOL)application:(UIApplication *)application     openURL:(NSURL *)url
+  sourceApplication:(NSString *)sourceApplication  annotation:(id)annotation {
+    return [FBAppCall handleOpenURL:url   sourceApplication:sourceApplication withSession:[PFFacebookUtils session]];
+}
+
+- (void)applicationDidBecomeActive:(UIApplication *)application {
+    [FBAppCall handleDidBecomeActiveWithSession:[PFFacebookUtils session]];
+}
+```
+```swift
+func application(application: UIApplication,  openURL url: NSURL,  sourceApplication: String?,  annotation: AnyObject?) -> Bool {
+  return FBAppCall.handleOpenURL(url, sourceApplication:sourceApplication,
+    withSession:PFFacebookUtils.session())
+}
+
+func applicationDidBecomeActive(application: UIApplication) {
+  FBAppCall.handleDidBecomeActiveWithSession(PFFacebookUtils.session())
+}
+```
+
+There are two main ways to use Facebook with your Parse users: (1) to log in (or sign up) as a Facebook user and creating a `PFUser`, or (2) linking Facebook to an existing `PFUser`.
+
+## Log In &amp; Sign Up
+
+`PFUser` provides a way to allow your users to log in or sign up through Facebook. This is done by using the `logInWithPermissions` method like so:
+
+```objc
+[PFFacebookUtils logInWithPermissions:permissions block:^(PFUser *user, NSError *error) {
+    if (!user) { NSLog(@"Uh oh. The user cancelled the Facebook login.");
+    } else if (user.isNew) { NSLog(@"User signed up and logged in through Facebook!");
+    } else { NSLog(@"User logged in through Facebook!");
+    }
+}];
+```
+```swift
+PFFacebookUtils.logInWithPermissions(permissions, {
+  (user: PFUser!, error: NSError!) -> Void in
+  if user == nil {
+    NSLog("Uh oh. The user cancelled the Facebook login.")
+  } else if user.isNew {
+    NSLog("User signed up and logged in through Facebook!")
+  } else {
+    NSLog("User logged in through Facebook!")
+  }
+})
+```
+
+Parse is compatible with version 3.2 of the Facebook iOS SDK.
+
+When this code is run, the following happens:
+
+1.  The user is shown the Facebook login dialog.
+2.  The user authenticates via Facebook, and your app receives a callback using `handleOpenURL`.
+3.  Our SDK receives the Facebook data and saves it to a `PFUser`. If it's a new user     based on the Facebook ID, then that user is created.
+4.  Your code block is called with the user.
+
+The permissions argument is an array of strings that specifies what permissions your app requires from the Facebook user. These permissions must only include read permissions. The `PFUser` integration doesn't require any permissions to work out of the box. [Read more permissions on Facebook's developer guide.](https://developers.facebook.com/docs/reference/api/permissions/)
+
+To acquire publishing permissions for a user so that your app can, for example, post status updates on their behalf, you must call `[PFFacebookUtils reauthorizeUser:withPublishPermissions:audience:block]`:
+
+```objc
+[PFFacebookUtils reauthorizeUser:[PFUser currentUser]  withPublishPermissions:@[@"publish_actions"] audience:FBSessionDefaultAudienceFriends    block:^(BOOL succeeded, NSError *error) {
+    if (succeeded) { // Your app now has publishing permissions for the user
+    }
+}];
+```
+```swift
+PFFacebookUtils.reauthorizeUser(PFUser.currentUser(), withPublishPermissions:["publish_actions"],
+  audience:FBSessionDefaultAudienceFriends, {
+  (succeeded: Bool!, error: NSError!) -> Void in
+  if succeeded {
+    // Your app now has publishing permissions for the user
+  }
+})
+```
+
+<div class="callout_green">
+  It is up to you to record any data that you need from the Facebook user after they authenticate. To accomplish this, you'll need to [do a graph query via Facebook's SDK](https://parse.com/questions/how-can-i-find-parse-users-that-are-facebook-friends-with-the-current-user).
+</div>
+
+## Linking
+
+If you want to associate an existing `PFUser` to a Facebook account, you can link it like so:
+
+```objc
+if (![PFFacebookUtils isLinkedWithUser:user]) {
+    [PFFacebookUtils linkUser:user permissions:nil block:^(BOOL succeeded, NSError *error) { if (succeeded) {     NSLog(@"Woohoo, user logged in with Facebook!"); }
+    }];
+}
+```
+```swift
+if !PFFacebookUtils.isLinkedWithUser(user) {
+  PFFacebookUtils.linkUser(user, permissions:nil, {
+    (succeeded: Bool!, error: NSError!) -> Void in
+    if succeeded {
+      NSLog("Woohoo, user logged in with Facebook!")
+    }
+  })
+}
+```
+
+The steps that happen when linking are very similar to log in. The difference is that on successful login, the existing `PFUser` is updated with the Facebook information. Future logins via Facebook will now log in the user to their existing account.
+
+If you want to unlink Facebook from a user, simply do this:
+
+```objc
+[PFFacebookUtils unlinkUserInBackground:user block:^(BOOL succeeded, NSError *error) {
+    if (succeeded) { NSLog(@"The user is no longer associated with their Facebook account.");
+    }
+}];
+```
+```swift
+PFFacebookUtils.unlinkUserInBackground(user, {
+  (succeeded: Bool!, error: NSError!) -> Void in
+  if succeeded {
+    NSLog("The user is no longer associated with their Facebook account.")
+  }
+})
+```
+
+## Facebook SDK and Parse
+
+The Facebook iOS SDK provides a number of helper classes for interacting with Facebook's API. Generally, you will use the `FBRequest` class to interact with Facebook on behalf of your logged-in user. [You can read more about the Facebook SDK here](https://developers.facebook.com/docs/reference/ios/3.2).
+
+Our library manages the user's `FBSession` object for you. You can simply call `[PFFacebookUtils session]` to access the session instance, which can then be passed to `FBRequest`s.
+
+</div>
+
+<div class="content_option" data-platform="OSX">
+  <div class="callout_red">
+    Facebook integration is currently only available on iOS.
+  </div>
+</div>
+
+
+# Twitter Users
+
+<div class="content_option" data-platform="iOS">
+
+As with Facebook, Parse also provides an easy way to integrate Twitter authentication into your application. The Parse SDK provides a straightforward way to authorize and link a Twitter account to your `PFUser`s. With just a few lines of code, you'll be able to provide a "log in with Twitter" option in your app, and be able to save their data to Parse.
+
+## Setup
+
+To start using Twitter with Parse, you need to:
+
+1.  [Set up a Twitter app](https://dev.twitter.com/apps), if you haven't already.
+2.  Add your application's Twitter consumer key on your Parse application's settings page.
+3.  When asked to specify a "Callback URL" for your Twitter app, please insert a valid URL. This value will not be used by your iOS or Android application, but is necessary in order to enable authentication through Twitter.
+4.  Add the `Accounts.framework` and `Social.framework` libraries to your Xcode project.
+5.  Add the following where you initialize the Parse SDK, such as in `application:didFinishLaunchingWithOptions:`.
+```objc
+[PFTwitterUtils initializeWithConsumerKey:@"YOUR CONSUMER KEY"    consumerSecret:@"YOUR CONSUMER SECRET"];
+```
+```swift
+PFTwitterUtils.initializeWithConsumerKey("YOUR CONSUMER KEY",  consumerSecret:"YOUR CONSUMER SECRET")
+```
+
+If you encounter any issues that are Twitter-related, a good resource is the [official Twitter documentation](https://dev.twitter.com/docs).
+
+There are two main ways to use Twitter with your Parse users: (1) logging in as a Twitter user and creating a `PFUser`, or (2) linking Twitter to an existing `PFUser`.
+
+## Login & Signup
+
+`PFTwitterUtils` provides a way to allow your `PFUser`s to log in or sign up through Twitter. This is accomplished using the `logInWithBlock` or `logInWithTarget` messages:
+
+```objc
+[PFTwitterUtils logInWithBlock:^(PFUser *user, NSError *error) {
+    if (!user) { NSLog(@"Uh oh. The user cancelled the Twitter login."); return;
+    } else if (user.isNew) { NSLog(@"User signed up and logged in with Twitter!");
+    } else { NSLog(@"User logged in with Twitter!");
+    }
+}];
+```
+```swift
+PFTwitterUtils.logInWithBlock {
+  (user: PFUser!, error: NSError!) -> Void in
+  if user == nil {
+    NSLog("Uh oh. The user cancelled the Twitter login.")
+  } else if user.isNew {
+    NSLog("User signed up and logged in with Twitter!")
+  } else {
+    NSLog("User logged in with Twitter!")
+  }
+}
+```
+
+When this code is run, the following happens:
+
+1.  The user is shown the Twitter login dialog.
+2.  The user authenticates via Twitter, and your app receives a callback.
+3.  Our SDK receives the Twitter data and saves it to a `PFUser`. If it's a new user     based on the Twitter handle, then that user is created.
+4.  Your `block` is called with the user.
+
+## Linking
+
+If you want to associate an existing `PFUser` with a Twitter account, you can link it like so:
+
+```objc
+if (![PFTwitterUtils isLinkedWithUser:user]) {
+    [PFTwitterUtils linkUser:user block:^(BOOL succeeded, NSError *error) { if ([PFTwitterUtils isLinkedWithUser:user]) {     NSLog(@"Woohoo, user logged in with Twitter!"); }
+    }];
+}
+```
+```swift
+if !PFTwitterUtils.isLinkedWithUser(user) {
+  PFTwitterUtils.linkUser(user, {
+    (succeeded: Bool!, error: NSError!) -> Void in
+    if PFTwitterUtils.isLinkedWithUser(user) {
+      NSLog("Woohoo, user logged in with Twitter!")
+    }
+  })
+}
+```
+
+The steps that happen when linking are very similar to log in. The difference is that on successful login, the existing `PFUser` is updated with the Twitter information. Future logins via Twitter will now log the user into their existing account.
+
+If you want to unlink Twitter from a user, simply do this:
+
+```objc
+[PFTwitterUtils unlinkUserInBackground:user block:^(BOOL succeeded, NSError *error) {
+    if (!error && succeeded) { NSLog(@"The user is no longer associated with their Twitter account.");
+    }
+}];
+```
+```swift
+PFTwitterUtils.unlinkUserInBackground(user, {
+  (succeeded: Bool!, error: NSError!) -> Void in
+  if error == nil && succeeded {
+    NSLog("The user is no longer associated with their Twitter account.")
+  }
+})
+```
+
+## Twitter API Calls
+
+Our SDK provides a straightforward way to sign your API HTTP requests to the [Twitter REST API](https://dev.twitter.com/docs/api) when your app has a Twitter-linked `PFUser`.  To make a request through our API, you can use the `PF_Twitter` singleton provided by `PFTwitterUtils`:
+
+```objc
+NSURL *verify = [NSURL URLWithString:@"https://api.twitter.com/1/account/verify_credentials.json"];
+NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:verify];
+[[PFTwitterUtils twitter] signRequest:request];
+NSURLResponse *response = nil;
+NSData *data = [NSURLConnection sendSynchronousRequest:request      returningResponse:&response  error:&error];
+```
+
+</div>
+<div class="content_option" data-platform="OSX">
+  <div class="callout_red">
+    Twitter integration is currently only available on iOS.
+  </div>
+</div>
+
+# GeoPoints
+
+Parse allows you to associate real-world latitude and longitude coordinates with an object.  Adding a `PFGeoPoint` to a `PFObject` allows queries to take into account the proximity of an object to a reference point.  This allows you to easily do things like find out what user is closest to another user or which places are closest to a user.
+
+<div class="callout_green">
+  Explore the use of `PFGeoPoints` and `PFUser` in a real application with our [Anywall tutorial](/tutorials/anywall). You'll learn everything from implementing a basic user management workflow to tracking GPS location with Core Location.
+</div>
+
+## PFGeoPoint
+
+To associate a point with an object you first need to create a `PFGeoPoint`.  For example, to create a point with latitude of 40.0 degrees and -30.0 degrees longitude:
+
+```objc
+PFGeoPoint *point = [PFGeoPoint geoPointWithLatitude:40.0 longitude:-30.0];
+```
+```swift
+let point = PFGeoPoint(latitude:40.0, longitude:-30.0)
+```
+
+This point is then stored in the object as a regular field.
+
+```objc
+placeObject[@"location"] = point;
+```
+```swift
+placeObject["location"] = point
+```
+
+Note: Currently only one key in a class may be a `PFGeoPoint`.
+
+### Getting the User's Current Location
+
+`PFGeoPoint` also provides a helper method for fetching the user's current location. This is accomplished via `geoPointForCurrentLocationInBackground`:
+
+```objc
+[PFGeoPoint geoPointForCurrentLocationInBackground:^(PFGeoPoint *geoPoint, NSError *error) {
+    if (!error) { // do something with the new geoPoint
+    }
+}];
+```
+```swift
+PFGeoPoint.geoPointForCurrentLocationInBackground {
+  (geoPoint: PFGeoPoint!, error: NSError!) -> Void in
+  if error == nil {
+    // do something with the new geoPoint
+  }
+}
+```
+
+When this code is run, the following happens:
+
+1.  An internal `CLLocationManager` starts listening for location updates (via `startsUpdatingLocation`).
+2.  Once a location is received, the location manager stops listening for location updates (via `stopsUpdatingLocation`) and a `PFGeoPoint` is created from the new location. If the location manager errors out, it still stops listening for updates, and returns an `NSError` instead.
+3.  Your `block` is called with the `PFGeoPoint`.
+
+For those who choose to use `CLLocationManager` directly, we also provide a `+geoPointWithLocation:` constructor to transform `CLLocation`s directly into `PFGeoPoint`s - great for apps that require constant polling.
+
+## Geo Queries
+
+Now that you have a bunch of objects with spatial coordinates, it would be nice to find out which objects are closest to a point.  This can be done by adding another restriction to `PFQuery` using `whereKey:nearGeoPoint:`.  Getting a list of ten places that are closest to a user may look something like:
+
+```objc
+// User's location
+PFGeoPoint *userGeoPoint = userObject[@"location"];
+// Create a query for places
+PFQuery *query = [PFQuery queryWithClassName:@"PlaceObject"];
+// Interested in locations near user.
+[query whereKey:@"location" nearGeoPoint:userGeoPoint];
+// Limit what could be a lot of points.
+query.limit = 10;
+// Final list of objects
+placesObjects = [query findObjects];
+```
+```swift
+// User's location
+let userGeoPoint = userObject["location"] as PFGeoPoint
+// Create a query for places
+var query = PFQuery(className:"PlaceObject")
+// Interested in locations near user.
+query.whereKey("location", nearGeoPoint:userGeoPoint)
+// Limit what could be a lot of points.
+query.limit = 10
+// Final list of objects
+placesObjects = query.findObjects()
+```
+
+ At this point `placesObjects` will be an array of objects ordered by distance (nearest to farthest) from `userGeoPoint`. Note that if an additional `orderByAscending:`/`orderByDescending:` constraint is applied, it will take precedence over the distance ordering.
+
+ To limit the results using distance check out `whereKey:nearGeoPoint:withinMiles`, `whereKey:nearGeoPoint:withinKilometers`, and `whereKey:nearGeoPoint:withinRadians`.
+
+It's also possible to query for the set of objects that are contained within a particular area.  To find the objects in a rectangular bounding box, add the `whereKey:withinGeoBoxFromSouthwest:toNortheast:` restriction to your `PFQuery`.
+
+```objc
+PFGeoPoint *swOfSF = [PFGeoPoint geoPointWithLatitude:37.708813 longitude:-122.526398];
+PFGeoPoint *neOfSF = [PFGeoPoint geoPointWithLatitude:37.822802 longitude:-122.373962];
+PFQuery *query = [PFQuery queryWithClassName:@"PizzaPlaceObject"];
+[query whereKey:@"location" withinGeoBoxFromSouthwest:swOfSF toNortheast:neOfSF];
+NSArray *pizzaPlacesInSF = [query findObjects];
+```
+```swift
+let swOfSF = PFGeoPoint(latitude:37.708813, longitude:-122.526398)
+let neOfSF = PFGeoPoint(latitude:37.822802, longitude:-122.373962)
+var query = PFQuery(className:"PizzaPlaceObject")
+query.whereKey("location", withinGeoBoxFromSouthwest:swOfSF, toNortheast:neOfSF)
+var pizzaPlacesInSF = query.findObjects()
+```
+
+## Caveats
+
+At the moment there are a couple of things to watch out for:
+
+1.  Each PFObject class may only have one key with a PFGeoPoint object.
+2.  Using the `nearGeoPoint` constraint will also limit results to within 100 miles.
+3.  Points should not equal or exceed the extreme ends of the ranges.  Latitude should not be -90.0 or 90.0.  Longitude should not be -180.0 or 180.0.  Attempting to set latitude or longitude out of bounds will cause an error.
+
+
+# User Interface
+
+<div class="content_option" data-platform="iOS">
+
+At the end of the day, users of your app are going to be interacting with UIKit components.
+
+[ParseUI](https://github.com/ParsePlatform/ParseUI-iOS) is an opensource collection of a handy user interface components aimed to streamline and simplify user authentication, displaying lists of data, and other common app elements.
+
+Please note that [ParseUI](https://github.com/ParsePlatform/ParseUI-iOS) is not included inside the main Parse iOS SDK.
+
+To learn more on how to install it - follow the instructions on the official [GitHub page](https://github.com/ParsePlatform/ParseUI-iOS).
+
+## PFLogInViewController
+
+If you are using Parse to manage users in your mobile app, you are already familiar with the `PFUser` class. At some point in your app, you might want to present a screen to log in your `PFUser`. `ParseUI` provides a view controller that does exactly this:
+
+<div class="callout_green">
+  Watch a  [tutorial on using the login and signup views](/tutorials/login-and-signup-views), which provide a set of built-in views ready to be customized and dropped into your app that uses `PFUser`.
+</div>
+
+You use the `PFLogInViewController` class by instantiating it and presenting it modally:
+
+```objc
+PFLogInViewController *logInController = [[PFLogInViewController alloc] init];
+logInController.delegate = self;
+[self presentViewController:logInController animated:YES completion:nil];
+```
+```swift
+var logInController = PFLogInViewController()
+logInController.delegate = self
+self.presentViewController(logInController, animated:true, completion: nil)
+```
+
+### Configuring the Log In Elements
+
+<div class="center_pic">
+  <%= image_tag 'docs/login/login_diagram.jpg' %> All elements of the PFLogInViewController
+</div>
+
+`PFLogInViewController` can be configured to provide a variety of log in options. By default, `PFLogInViewController` presents the following UI:
+
+*   Username and Password Fields
+*   Log In Button
+*   Password Forgotten Button
+*   Sign Up Button
+*   Dismiss Button
+
+Any of the above features can be turned on or off. The options can be set using the `fields` property on `PFLogInViewController`:
+
+```objc
+  logInController.fields = (PFLogInFieldsUsernameAndPassword     | PFLogInFieldsLogInButton     | PFLogInFieldsSignUpButton     | PFLogInFieldsPasswordForgotten     | PFLogInFieldsDismissButton);
+```
+```swift
+  logInController.fields = (PFLogInFields.UsernameAndPassword     | PFLogInFields.LogInButton     | PFLogInFields.SignUpButton     | PFLogInFields.PasswordForgotten     | PFLogInFields.DismissButton)
+
+```
+
+<div class="clear"></div>
+<div class="three_pics">
+  <div class="inner" style="width: 690px"> <div class="left_pic">     
+    <%= image_tag 'docs/login/login_simple.png' %> With username/password.
+  </div>
+  <div class="left_pic">
+    <%= image_tag 'docs/login/login_default.png' %> With default settings.
+  </div>
+  <div class="left_pic">     
+    <%= image_tag 'docs/login/login_all.png' %> All elements.
+  </div>
+</div>
+<div class="clear"></div>
+
+Essentially, you use the bitwise or operator (`|`) to chain up all the options you want to include in the log in screen, and assign the value to `fields`.
+
+In addition, there are a number of other options that can be turned on, including:
+
+*   Facebook Button
+*   Twitter Button
+
+Similarly, you can turn on Facebook or Twitter log in as such:
+
+```objc
+logInController.fields = (PFLogInFieldsUsernameAndPassword   | PFLogInFieldsFacebook   | PFLogInFieldsTwitter);
+```
+```swift
+logInController.fields = (PFLogInFields.UsernameAndPassword   | PFLogInFields.Facebook   | PFLogInFields.Twitter)
+```
+
+The above code would produce a log in screen that includes username, password, Facebook and Twitter buttons. Facebook log in permissions can be set via the `facebookPermissions`.
+
+```objc
+PFLogInViewController *logInController = [[PFLogInViewController alloc] init];
+logInController.delegate = self;
+logInController.facebookPermissions = @[ @"friends_about_me" ];
+[self presentViewController:logInController animated:YES completion:nil];
+```
+```swift
+var logInController = PFLogInViewController()
+logInController.delegate = self
+logInController.facebookPermissions = [ "friends_about_me" ]
+self.presentViewController(logInController, animated:true, completion:nil)
+```
+
+### Responding to Log In Success, Failure or Cancellation
+
+When the user signs in or cancels, the `PFLogInViewController` notifies the delegate of the event. Upon receiving this callback, the delegate should, at a minimum, dismiss `PFLogInViewController`. Additionally, the delegate could possibly update its own views or forward the message to the other components that need to know about the `PFUser`.
+
+```objc
+- (void)logInViewController:(PFLogInViewController *)controller        didLogInUser:(PFUser *)user {
+    [self dismissViewControllerAnimated:YES completion:nil];
+}
+
+- (void)logInViewControllerDidCancelLogIn:(PFLogInViewController *)logInController {
+    [self dismissViewControllerAnimated:YES completion:nil];
+}
+```
+```swift
+func logInViewController(controller: PFLogInViewController, didLogInUser user: PFUser!) -> Void {
+  self.dismissViewController(true, completion: nil)
+}
+
+func logInViewControllerDidCancelLogIn(controller: PFLogInViewController) -> Void {
+  self.dismisViewControllerAnimated(true, completion: nil)
+}
+```
+
+Besides the delegate pattern, the `PFLogInViewController` also supports `NSNotification`s, which is useful if there are multiple observers of the sign in events.
+
+### Customizing the Logo and Background Image
+
+You might want to use your own logo or background image. You can achieve this by subclassing `PFLogInViewController` and overriding `viewDidLoad` method:
+
+```objc
+@interface MyLogInViewController : PFLogInViewController
+
+@end
+
+@implementation MyLogInViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+
+    self.view.backgroundColor = [UIColor darkGrayColor];
+
+    UIImageView *logoView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"logo.png"]];
+    self.logInView.logo = logoView; // logo can be any UIView
+}
+@end
+```
+```swift
+class MyLogInViewController : PFLogInViewController {
+
+  override func viewDidLoad() {
+    super.viewDidLoad()
+
+    self.view.backgroundColor = UIColor.darkGrayColor()
+
+    let logoView = UIImageView(image: UIImage(named:"logo.png"))
+    self.logInView.logo = logoView
+  }
+
+}
+```
+
+If you would like to modify the logo and the background of the associated sign up view, you will need to subclass `PFSignUpViewController` and create an instance of the subclass and assign it to the `signUpController` as soon as you instantiate `PFLogInViewController`:
+
+```objc
+MyLogInViewController *logInController = [[MyLogInViewController alloc] init];
+logInController.signUpController = [[MySignUpViewController alloc] init];
+[self presentViewController:logInController animated:YES completion:nil];
+```
+```swift
+let logInController = MyLogInViewController()
+logInController.signUpController = MySignUpViewController()
+self.presentViewController(logInController, animated: true, completion: nil)
+```
+
+### Further View Customization
+
+Occasionally you might want to customize `PFLogInViewController` further. For example, you might want to change the placeholder text to "Email" or change the size of the login button. In both cases, you need to subclass `PFLogInViewController` and override either `viewDidLoad` or `viewDidLayoutSubviews`. Override the former if the behavior is not related to layout, and override the latter otherwise:
+
+```objc
+@interface MyLogInViewController : PFLogInViewController
+
+@end
+
+@implementation MyLogInViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    self.logInView.usernameField.placeholder = @"email";
+}
+
+- (void)viewDidLayoutSubviews {
+    [super viewDidLayoutSubviews];
+    self.logInView.logInButton.frame = CGRectMake(...); // Set a different frame.
+}
+
+@end
+```
+```swift
+class MyLogInViewController : PFLogInViewController {
+
+  override func viewDidLoad() {
+    super.viewDidLoad()
+
+    self.logInView.usernameField.placeholder = "email"
+  }
+
+  override func viewDidLayoutSubviews() {
+    super.viewDidLayoutSubviews()
+
+    self.logInView.logInButton.frame = CGRectMake(...) // Set a different frame.
+  }
+
+}
+```
+
+Developers interested in this kind of customization should take a look at the interface of [`PFLogInView`](ios/api/Classes/PFLogInView.html), where all customizable properties are documented.
+
+### Portrait and Landscape
+
+By default, the `PFLogInViewController` supports all orientations, except `UIInterfaceOrientationPortraitUpsideDown` on iPhone.
+
+### Resolution Independent
+
+The `PFLogInViewController` is written to be resolution-independent, meaning it looks great on all iOS device sizes and pixel densities.
+
+## PFSignUpViewController
+
+If you are using `PFLogInViewController` with the `PFLogInFieldsSignUpButton` option enabled, you do not need to do any additional work to enable the sign up functionality. When your user taps on the sign up button on the log in screen, a sign up screen will appear and allow them to sign up. However, there are occasions where you might want to use the sign up screen independently of the log in screen. This is when the `PFSignUpViewController` comes in handy.
+
+You use `PFSignUpViewController` by instantiating it and presenting it modally:
+
+```objc
+PFSignUpViewController *signUpController = [[PFSignUpViewController alloc] init];
+signUpController.delegate = self;
+[self presentViewController:signUpController animated:YES completion:nil];
+```
+```swift
+let signUpController = PFSignUpViewController()
+signUpController.delegate = self
+self.presentViewController(signUpController, animated: true, completion: nil)
+```
+
+That is all you need to do to get a functional sign up screen.
+
+### Configuring the Sign Up Elements
+
+<div class="center_pic">
+  <%= image_tag 'docs/signup/signup_diagram.jpg' %> All elements of the PFSignUpViewController
+</div>
+
+`PFSignUpViewController` can be configured to provide a variety of sign up options. By default, it presents the following UI:
+
+*   Username and Password Fields
+*   Email
+*   Sign Up Button
+*   Dismiss Button
+
+If your sign up screen requires an additional field on top of the default ones, such as "phone number", you can turn on a field called named "additional":
+
+```objc
+signUpController.fields = (PFSignUpFieldsUsernameAndPassword    | PFSignUpFieldsSignUpButton    | PFSignUpFieldsEmail    | PFSignUpFieldsAdditional    | PFSignUpFieldsDismissButton);
+```
+```swift
+signUpController.fields = (PFSignUpFields.UsernameAndPassword    | PFSignUpFields.SignUpButton    | PFSignUpFields.Email    | PFSignUpFields.Additional    | PFSignUpFields.DismissButton)
+```
+
+<div class="three_pics"> 
+  <div class="inner" style="width: 690px">     
+    <div class="left_pic"> 
+      <%= image_tag 'docs/signup/signup_simple.png' %> With username/password.
+    </div>
+    <div class="left_pic"> 
+      <%= image_tag 'docs/signup/signup_email.png' %> With default settings.
+    </div>
+    <div class="left_pic"> 
+      <%= image_tag 'docs/signup/signup_all.png' %> All elements.
+    </div>
+  </div>
+</div>
+
+Essentially, you use the bitwise or operator (`|`) to chain up all the options you want to include in the sign up screen, and assign the value to `fields`. Similarly, you can turn off any field by omitting it in the assignment to fields.
+
+### Responding to Sign Up Success, Failure or Cancellation
+
+When the user signs up or cancels, the `PFSignUpViewController` notifies the delegate of the event. Upon receiving this callback, the delegate should, at a minimum, dismiss `PFSignUpViewController`. Additionally, the delegate could update its own views or forward the message to the other components that need to know about the `PFUser`.
+
+```objc
+- (void)signUpViewController:(PFSignUpViewController *)signUpController didSignUpUser:(PFUser *)user {
+    [self dismissViewControllerAnimated:YES completion:nil];
+}
+
+- (void)signUpViewControllerDidCancelSignUp:(PFSignUpViewController *)signUpController {
+    [self dismissViewControllerAnimated:YES completion:nil];
+}
+```
+```swift
+func signUpViewController(signUpController: PFSignUpViewController, didSignUpUser user: PFUser) -> Void {
+  self.dismissViewControllerAnimated(true, completion: nil)
+}
+
+func signUpViewControllerDidCancelSignUp(signUpController: PFSignUpViewController) -> Void {
+  self.dismissViewControllerAnimated(true, completion: nil)
+}
+```
+
+Besides the delegate pattern, the `PFSignUpViewController` also supports `NSNotification`s, which is useful when there are multiple listeners of the sign up events.
+
+### Customizing the Logo and Background Image
+
+You might want to use your own logo or background image. You can achieve this by subclassing `PFSignUpViewController` and overriding `viewDidLoad`:
+```objc
+@interface MySignUpViewController : PFSignUpViewController
+
+@end
+
+@implementation MySignUpViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+
+    self.view.backgroundColor = [UIColor darkGrayColor];
+
+    UIImageView *logoView = [[UIImageView alloc] initWithImage:@"logo.png"];
+    self.signUpView.logo = logoView; // logo can be any UIView
+}
+
+@end
+```
+```swift
+class MySignUpViewController : PFSignUpViewController {
+
+  override func viewDidLoad() {
+    super.viewDidLoad()
+
+    self.view.backgroundColor = UIColor.darkGrayColor()
+
+    let logoView = UIImageView(image: UIImage(named: "logo.png"))
+    self.signUpView.logo = logoView // 'logo' can be any UIView
+  }
+
+}
+```
+
+### Customizing Validation Logic
+
+Often you will want to run some client-side validation on the sign up information before submitting it to the Parse Cloud. You can add your validation logic in the `signUpViewController:shouldBeginSignUp:` method in the `PFSignUpViewControllerDelegate`. For example, if you decide any password less than 8 characters is too short, you can achieve the following with:
+
+```objc
+- (BOOL)signUpViewController:(PFSignUpViewController *)signUpController    shouldBeginSignUp:(NSDictionary *)info {
+    NSString *password = info[@"password"];
+    return (password.length >= 8); // prevent sign up if password has to be at least 8 characters long
+}
+```
+```swift
+func signUpViewController(signUpController: PFSignUpViewController!,   shouldBeginSignUp info: [NSObject : AnyObject]!) -> Bool {
+    if let password = info?["password"] as? String { return password.utf16Count >= 8
+    }
+    return false
+}
+```
+`info` is a dictionary that contains all sign up fields, such as username, password, email, and additional.
+
+### Further View Customization
+
+Occasionally you might want to customize `PFSignUpViewController` further. For example, you might want to change the "additional" placeholder text to "Phone" or change the size of the signup button. You can always subclass `PFSignUpViewController` and override `UIViewController`'s various methods. You should override the `viewDidLoad` if the behavior you want to change is unrelated to view layout, and override `viewDidLayoutSubviews` otherwise:
+
+```objc
+@interface MySignUpViewController : PFSignUpViewController
+
+@end
+
+@implementation MySignUpViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    self.signUpView.usernameField.placeholder = @"phone";
+}
+
+- (void)viewDidLayoutSubviews {
+    [super viewDidLayoutSubviews];
+    self.signUpView.signUpButton.frame = CGRectMake(...); // Set a different frame.
+}
+
+@end
+```
+```swift
+class MySignUpViewController : PFSignUpViewController {
+
+  override func viewDidLoad() {
+    super.viewDidLoad()
+
+    self.signUpView.usernameField.placeholder = "phone"
+  }
+
+  override func viewDidLayoutSubviews() {
+    super.viewDidLayoutSubviews()
+
+    self.signUpView.signUpButton.frame = CGRectMake(...) // Set a different frame.
+  }
+
+}
+```
+
+Developer interested in this kind of customization should take a look at the interface of [`PFSignUpView`](ios/api/Classes/PFSignUpView.html), where all customizable properties are documented.
+
+### Portrait and Landscape
+
+By default, the `PFSignUpViewController` supports all orientations, except `UIInterfaceOrientationPortraitUpsideDown` on iPhone.
+
+### Resolution Independent
+
+The `PFSignUpViewController` is written to be resolution-independent, meaning it looks great on all iOS device sizes and pixel densities.
+
+## PFQueryTableViewController
+
+Data oriented iOS applications are mostly a collection of `UITableViewController`s and corresponding `UITableView`s. When using Parse, each cell of a `UITableView` typically represents data from a `PFObject`. `PFQueryTableViewController` is a sub-class of `UITableViewController` that provides a layer of abstraction that lets you easily display data from one of your Parse classes.
+
+<div class="callout_green">
+  Watch a [tutorial on using PFQueryTableViewController](/tutorials/parse-query-table) to display objects from a `Todo` class in your Parse application.
+</div>
+
+You use `PFQueryTableViewController` much like how you would use `UITableViewController`:
+
+1.  Make a subclass of `PFQueryTableViewController` and customize it. Use the [template file](https://gist.github.com/ba03c1a550f14f88f95d) as a starting point.
+2.  It automatically sets itself as the delegate and datasource.
+3.  Set the `parseClassName` instance variable to specify which Parse class should be queried for data.
+4.  Override the `queryForTable` method to construct a custom `PFQuery` that should be used to get objects for the table.
+5.  Override the `tableView:cellForRowAtIndexPath:object:` method to return a custom cell tailored for each `PFObject`.
+6.  Implement your custom cell class; makes sure it inherits from `PFTableViewCell` class.
+      <li>When the view loads, the class automatically grabs the `PFObject`s via the constructed query and loads it into the table. It even includes pagination and pull-to-refresh out of the box.
+
+The class allows you to think about a one-to-one mapping between a `PFObject` and a `UITableViewCell`, rather than having to juggle index paths. You also get the following features out of the box:
+
+*   Pagination with a cell that can be tapped to load the next page.
+*   Pull-to-refresh table view header.
+*   Automatic downloading and displaying of remote images in cells.
+*   Loading screen, shown before any data is loaded.
+*   Automatic loading and management of the objects array.
+*   Various methods that can be overridden to customize behavior at major events in the data cycle.
+
+The easiest way to understand this class is with an example. This subclass of `PFQueryTableViewController` displays a series of Todo items and their numeric priorities:
+
+```objc
+@interface SimpleTableViewController : PFQueryTableViewController
+
+@end
+
+@implementation SimpleTableViewController
+
+- (instancetype)initWithStyle:(UITableViewStyle)style
+{
+    self = [super initWithStyle:style];
+    if (self) { // This table displays items in the Todo class self.parseClassName = @"Todo"; self.pullToRefreshEnabled = YES; self.paginationEnabled = YES; self.objectsPerPage = 25;
+    }
+    return self;
+}
+
+- (PFQuery *)queryForTable {
+    PFQuery *query = [PFQuery queryWithClassName:self.parseClassName];
+
+    // If no objects are loaded in memory, we look to the cache first to fill the table
+    // and then subsequently do a query against the network.
+    if (self.objects.count == 0) { query.cachePolicy = kPFCachePolicyCacheThenNetwork;
+    }
+
+    [query orderByDescending:@"createdAt"];
+
+    return query;
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView  cellForRowAtIndexPath:(NSIndexPath *)indexPath object:(PFObject *)object
+{
+    static NSString *cellIdentifier = @"cell";
+
+    PFTableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:cellIdentifier];
+    if (!cell) { cell = [[PFTableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle       reuseIdentifier:cellIdentifier];
+    }
+
+    // Configure the cell to show todo item with a priority at the bottom
+    cell.textLabel.text = object[@"text"];
+    cell.detailTextLabel.text = [NSString stringWithFormat:@"Priority: %@",  object[@"priority"]];
+
+    return cell;
+}
+
+@end
+```
+
+<div class="right_pic">
+  <%= image_tag 'docs/todo_view.gif' %> A query table showing Todo items.
+</div>
+
+This view shows a list of Todo items and also allows the user to pull-to-refresh and load the next page by touching a special pagination cell at the end of the table. It also properly caches the objects such that  when the view is no longer in memory, the next time it loads it will use the query cache to immediately show the previously loaded objects while making a network call to update.
+
+Notice all the code that we're not writing. We don't need to handle loading the data into the table, wrangle index paths, or handle tricky pagination code. That's all handled by the `PFQueryTableViewController` automatically.
+
+A good starting point to learn more is to look at the [API for the class](/docs/ios/api/Classes/PFQueryTableViewController.html) and also the [template subclass file](https://gist.github.com/ba03c1a550f14f88f95d). We designed the class with customizability in mind, so it should accommodate many instances where you used to use `UITableViewController`.
+
+### Loading Remote Images in Cells
+
+`PFQueryTableViewController` makes it simple to display remote images stored in the Parse Cloud as `PFFile`s. All you need to do is to override `tableView:cellForRowAtIndexPath:object:` and return a `PFTableViewCell` with its `imageView`'s `file` property specified. If you would like to display a placeholder image to be shown before the remote image is loaded, assign the placeholder image to the `image` property of the `imageView`.
+
+```objc
+@implementation SimpleTableViewController
+
+- (UITableViewCell *)tableView:(UITableView *)tableView  cellForRowAtIndexPath:(NSIndexPath *)indexPath object:(PFObject *)object {
+    static NSString *identifier = @"cell";
+    PFTableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:identifier];
+    if (!cell) { cell = [[PFTableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:identifier];
+    }
+    cell.textLabel.text = object[@"title"];
+
+    PFFile *thumbnail = object[@"thumbnail"];
+    cell.imageView.image = [UIImage imageNamed:@"placeholder.jpg"];
+    cell.imageView.file = thumbnail;
+    return cell;
+}
+@end
+```
+
+<div class="right_pic">
+    <%= image_tag 'docs/images_table.png' %> A query table that automatically downloads and displays remote images in cells.
+</div>
+
+This table shows a list of cute animal photos which are stored in the Parse Cloud, as `PFFile`s. "placeholder.jpg" is an image included in the application bundle which is shown before the animal photos are downloaded.
+
+The images are downloaded on demand. As you scroll through the table, the images in the currently visible cells are downloaded. This just-in-time behavior is desirable because not only does it conserve bandwidth, it also ensures timely display of visible images. If a more aggressive loading behavior is desired, you can use the `loadInBackground` method on `imageView` to download the image.
+
+### Customizing the Query
+
+The default query is set to get objects from your class ordered by descending `createdAt`. To customize, simply override the `queryForTable` method to return your own `PFQuery`. The table will use this query when getting objects to display.
+
+### Customizing the Cells
+
+To customize the look of your table, override `tableView:cellForRowAtIndexPath:object:` to return a customized cell. Notice that this method is similar to the typical table data source method, but it includes the `PFObject` directly as a parameter.
+
+You should no longer override `tableView:cellForRowAtIndexPath:`.
+
+_Important:_ your table view cells should inherit from `PFTableViewCell`, rather than `UITableViewCell`. `PFTableViewCell` is a subclass of `UITableViewCell` that supports remote image loading. When used in `PFQueryTableViewController`, `PFTableViewCell`'s remote images would be automatically loaded.
+
+### Lifecycle Methods
+
+Several methods are exposed that are called at major events during the data lifecycle of the table. They are `objectsDidLoad:` and `objectsWillLoad`, which are called after the objects have loaded from the query, and right before the query is fired, respectively. You can override these to provide extra functionality during these events.
+
+### Pagination
+
+<div class="right_pic">
+  <%= image_tag 'docs/pagination.png' %>
+</div>
+
+Pagination ensures that the table only gets one page of objects at a time. You can customize how many objects are in a page by setting the `objectsPerPage` instance variable.
+
+The query is automatically altered to apply pagination, and, when the table first loads, it only shows the first page of objects. A pagination cell appears at the bottom of the table which allows users to load the next page. You can customize this cell by overriding `tableView:cellForNextPageAtIndexPath:`
+
+Pagination is turned on by default. If you want to turn it off, simply set `paginationEnabled` to `NO`.
+
+### Pull to Refresh
+
+<div class="right_pic">
+  <%= image_tag 'docs/pull_to_refresh.png' %>
+</div>
+
+Pull to Refresh is a feature that allows users to pull the table down and release to reload the data. Essentially, the first page of data is reloaded from your class and the table is cleared and updated with the data.
+
+Pull to Refresh is turned on by default. If you want to turn it off, simply set `pullToRefreshEnabled` to `NO`.
+
+### Loading View
+
+A loading view is displayed when the table view controller is loading the first page of data. It is turned on by default, and can be turned off via the property `loadingViewEnabled`.
+
+### Offline and Error Messages
+
+When the user is offline or a Parse error was generated from a query, an alert can automatically be shown to the user. By default, this is turned on when using `PFQueryTableViewController`. If you want to turn this behavior off, you can do so using the methods `offlineMessagesEnabled` and `errorMessagesEnabled` on the `Parse` class.
+
+## PFImageView
+
+Many apps need to display images stored in the Parse Cloud as `PFFile`s. However, to load remote images with the built-in `UIImageView` involves writing many lines of boilerplate code. `PFImageView` simplifies this task:
+
+```objc
+PFImageView *imageView = [[PFImageView alloc] init];
+imageView.image = [UIImage imageNamed:@"..."]; // placeholder image
+imageView.file = (PFFile *)someObject[@"picture"]; // remote image
+
+[imageView loadInBackground];
+```
+```swift
+let imageView = PFImageView()
+imageView.image = UIImage(named: "...") // placeholder image
+imageView.file = someObject.picture // remote image
+
+imageView.loadInBackground()
+```
+
+If assigned to, the `image` property is used to display a placeholder before the remote image is downloaded. Note that the download does not start as soon as the `file` property is assigned to, but the loading only begins when `loadInBackground:` is called. The remote image is cached both in memory and on disc. If the image is found in cache, the call to `loadInBackground:` would return immediately.
+
+## PFTableViewCell
+
+Many apps need to display table view cells which contain images stored in the Parse Cloud as `PFFile`s. However, to load remote images with the built-in `UITableViewCell` involves writing many lines of boilerplate code. `PFTableViewCell` simplifies this task by exposing an `imageView` property of the type `PFImageView` that supports remote image loading:
+
+```objc
+@implementation SimpleTableViewController
+
+- (UITableViewCell *)tableView:(UITableView *)tableView  cellForRowAtIndexPath:(NSIndexPath *)indexPath object:(PFObject *)object {
+    static NSString *identifier = @"cell";
+    PFTableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:identifier];
+    if (!cell) { cell = [[PFTableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:identifier];
+    }
+    cell.textLabel.text = object[@"title"];
+
+    PFFile *thumbnail = object[@"thumbnail"];
+    cell.imageView.image = [UIImage imageNamed:@"placeholder.jpg"];
+    cell.imageView.file = thumbnail;
+    return cell;
+}
+
+@end
+```
+
+Like `UITableViewCell`, `PFTableViewCell` supports the default layout styles. Unlike `UITableViewCell`, `PFTableViewCell`'s `imageView` property is of the type `PFImageView`, which supports downloading remote images in `PFFile`.
+
+Although it can be used independently, `PFTableViewCell` really shines when used in `PFQueryTableViewController`. `PFQueryTableViewController` knows about `PFTableViewCell` and loads the images automatically. This behavior is discussed in detail in the documentation for `PFQueryTableViewController`.
+
+## Customizing/Localizing String Resources
+
+All strings in Parse's UI classes are customizable/localizable. The easiest way to customize a string is through the [default localization support](https://developer.apple.com/internationalization/) provided by iOS.
+
+Say, for example, you would like to customize the loading message in the HUD of `PFSignUpViewController` that says "Loading..." Assume you have followed the localization guide and set up `Localizable.strings` in the `en.lproj` directory. In `Localizable.strings`, you can then enter:
+<%= code do%>
+"Loading..." = "In progress";
+```
+
+That would customize the string to "In progress". The key on the left is the original string you want to customize, and the value on the right is the customized value.
+
+Say, you would like to customize the error message in `PFSignUpViewController` that says "The email address "andrew@x" is invalid. Please enter a valid email." You are not sure how to enter this into `Localizable.strings` because it contains a variable.
+
+Included in  the Parse SDK is a file named `Localizable.string` which includes all the localizable keys in the Parse framework. Browsing this file, developers can find the key for the string they would like to customize. You notice that the string "The email address \"%@\" is invalid. Please enter a valid email." is a key in the file. In your own `Localizable.strings`, you can then enter:
+
+<%= code do%>
+"The email address \"%@\" is invalid. Please enter a valid email." = "Wrong email: \"%@\"";
+```
+
+The string is now customized.
+
+</div>
+<div class="content_option" data-platform="OSX">
+  <div class="callout_red">
+    User Interface helpers are currently only available for iOS.
+  </div>
+</div>
+
+# In-App Purchases
+
+<div class="content_option" data-platform="iOS">
+
+Parse provides a set of APIs for working with in-app purchases. Parse makes it easier to work with `StoreKit` and facilitates delivery of downloadable content with receipt verification in the cloud. Receipt verification is a mechanism that allows you to restrict downloads to only those users that have paid accordingly.
+
+In addition, developers can attach query-able metadata on products to categorize, search, and dynamically manipulate products available for purchase.
+
+Lastly, any content uploaded to Parse is exempt from the Apple review process, and hence can be served as soon as the upload is complete.
+
+### Apple Setup
+
+Prior to using in-app purchases on Parse, you'll need to set up your app and products with Apple. This process spans both the provisioning portal and iTunes Connect. We recommend following this [step-by-step guide](https://developer.apple.com/library/ios/#technotes/tn2259/_index.html).
+
+Note that this is a tricky setup process so please ensure you follow Apple's documentation precisely.
+
+## Simple Purchases
+
+Once the setup above is complete, you can begin working with in-app purchases:
+
+1.  On the main thread, register the handlers for the products:
+
+```objc
+// Use the product identifier from iTunes to register a handler.
+[PFPurchase addObserverForProduct:@"Pro" block:^(SKPaymentTransaction *transaction) {
+    // Write business logic that should run once this product is purchased.
+    isPro = YES;
+}];
+```
+
+Note that this does not make the purchase, but simply registers a block to be run if a purchase is made later. This registration must be done on the main thread, preferably as soon as the app is launched, i.e. in `application:didFinishLaunchingWithOptions:`. If there are multiple products, we recommend registering all product handlers in the same method, such as `application:didFinishLaunchingWithOptions`:
+
+```objc
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    ...
+    [PFPurchase addObserverForProduct:@"Pro" block:^(SKPaymentTransaction *transaction) { isPro = YES;
+    }];
+    [PFPurchase addObserverForProduct:@"VIP" block:^(SKPaymentTransaction *transaction) { isVip = YES;
+    }];
+}
+```
+2.  To initiate a purchase, use the `+[PFPurchase buyProduct:block:]` method:
+
+```js
+[PFPurchase buyProduct:@"Pro" block:^(NSError *error) {
+    if (!error) { // Run UI logic that informs user the product has been purchased, such as displaying an alert view.
+    }
+}];
+```
+
+The call to `buyProduct:block:` brings up a dialogue that asks users to enter their Apple credentials. When the user's identity is verified, the product will be purchased. If the product is non-consumable and has been purchased by the user before, the user will not be charged.
+
+## Downloadable Purchases
+
+Many IAP products such as books and movies have associated content files that should be downloaded once the purchase is made. This is very simple to do with Parse:
+
+1.  First, go to the web data browser and create a `Product` class,
+
+2.  For each product, fill in the required metadata information and upload the content files:
+ 1.  `productIdentifier:` the product identifier of the product, matching the one in iTunes Connect</code>
+ 2.  `icon:` the icon to be displayed in `PFProductTableViewController`
+ 3.  `title:` the title to be displayed in `PFProductTableViewController`
+ 4.  `subtitle:` the subtitle to be displayed in `PFProductTableViewController`
+ 5.  `order`: the order this product should appear in `PFProductTableViewController`. This is used only in `PFProductTableViewController`; fill in 0 if the order is not important,
+ 6.  `download`: the downloadable content file
+
+Note that the file uploaded in `download` is not publicly accessible, and only becomes available for download when a purchase is made. `downloadName` is the name of the file on disk once downloaded. You don't need to fill this in.
+
+3.  Next, you need to register the product handler:
+
+```objc
+[PFPurchase addObserverForProduct:@"Pro" block:^(SKPaymentTransaction *transaction) {
+    [PFPurchase downloadAssetForTransaction:transaction completion:^(NSString *filePath, NSError *error) { if (!error) {     // at this point, the content file is available at filePath. }
+    }];
+}];
+```
+
+Note that this does not make the purchase, but simply registers a block to be run if a purchase is made later. The call to `downloadAssetForTransaction:completion:` passes the receipt of the purchase to the Parse Cloud, which then verifies with Apple that the purchase was made. Once the receipt is verified, the purchased file is downloaded.
+
+4.  To make the purchase,
+
+```js
+[PFPurchase buyProduct:@"Pro" block:^(NSError *error) {
+    if (!error) { // run UI logic that informs user the product has been purchased, such as displaying an alert view.
+    }
+}];
+```
+
+The call to `buyProduct:block:` brings up a dialogue that asks users to enter their Apple credentials. When the user's identity is verified, the product will be purchased.
+
+## Querying Product Information
+
+You can query the product objects created in the data browser using `PFProduct`. Like `PFUser` or `PFRole`, `PFProduct` is a subclass of `PFObject` that contains convenience accessors to various product-specific properties.
+
+For example, here's a simple query to get a product:
+
+```js
+PFQuery *productQuery = [PFProduct query];
+PFProduct *product = [[productQuery findObjects] anyObject];
+NSLog(@"%@, %@", product.productIdentifier, product.title);
+```
+
+## PFProductTableViewController
+
+<div class="right_pic query_table" style="width: 260px">
+  <%= image_tag 'docs/products_table_screenshot.png', :class => 'border' %> An example of a products table in a magazine app.
+</div>
+
+`PFProductTableViewController` is a subclass of `PFQueryTableViewController` that displays all IAP products in a table view. Some content apps, such as an app that sells comic books or video tutorials, may find it handy to use `PFProductTableViewController` to sell the products. By default, each cell is a product, and tapping on a cell initiates the purchase for the product. If the product has associated downloadable content, the download will start when the cell is selected and a progress bar is displayed to indicate the progress of the download.
+
+Note that in order to use this class, you must enter all product information in the `Product` class via the data browser.
+
+<div class="content_option" data-platform="OSX">
+  <div class="callout_red">
+    In-App Purchases through Parse are currently only available on iOS.
+  </div>
+</div>
+
+# Handling Errors
+
+Parse has a few simple patterns for surfacing errors and handling them in your code.
+
+There are two types of errors you may encounter. The first is those dealing with logic errors in the way you're using the SDK. These types of errors result in an `NSException` being raised. For an example take a look at the following code:
+
+```objc
+PFUser *user = [PFUser user];
+[user signUp];
+```
+```swift
+let user = PFUser()
+user.signUp
+```
+
+This will throw an `NSInternalInconsistencyException` because `signUp` was called without first setting the required properties (`username` and `password`).
+
+The second type of error is one that occurs when interacting with the Parse Cloud over the network. These errors are either related to problems connecting to the cloud or problems performing the requested operation. Let's take a look at another example:
+
+```objc
+- (void)getMyNote {
+    PFQuery *query = [PFQuery queryWithClassName:@"Note"];
+    [query getObjectInBackgroundWithId:@"thisObjectIdDoesntExist" target:self       selector:@selector(callbackForGet:error:)];
+}
+```
+
+In the above code, we try to fetch an object with a non-existent `objectId`. The Parse Cloud will return an error with an error code set in `code` and message in the error's `userInfo`. Here's how to handle it properly in your callback:
+
+```objc
+- (void)callbackForGet:(PFObject *)result error:(NSError *)error {
+    if (result) { 
+      NSLog(@"Everything went fine!");
+    } else { 
+      if ([error code] == kPFErrorObjectNotFound) {     
+        NSLog(@"Uh oh, we couldn't find the object!"); 
+      } else if (error) {     
+        NSLog(@"Error: %@", [error userInfo][@"error"]); 
+      }
+    }
+}
+```
+
+The query might also fail because the device couldn't connect to the Parse Cloud. Here's the same callback but with a bit of extra code to handle that scenario explicitly:
+
+```objc
+- (void)callbackForGet:(PFObject *)result error:(NSError *)error {
+    if (result) { NSLog(@"Everything went fine!");
+    } else { if ([error code] == kPFErrorObjectNotFound) {     NSLog(@"Uh oh, we couldn't find the object!"); // Now also check for connection errors: } else if ([error code] == kPFErrorConnectionFailed) {     NSLog(@"Uh oh, we couldn't even connect to the Parse Cloud!"); } else if (error) {     NSLog(@"Error: %@", [error userInfo][@"error"]); }
+    }
+}
+```
+
+When the callback expects a `NSNumber`, its `boolValue` tells you whether the operation succeeded or not. For example, this is how you might implement the callback for `PFObject`'s `saveInBackgroundWithTarget:selector:` method:
+
+```objc
+- (void)callbackForSave:(NSNumber *)result error:(NSError *)error {
+    if ([result boolValue]) { NSLog(@"Everything went fine!");
+    } else { if ([error code] == kPFErrorConnectionFailed) {     NSLog(@"Uh oh, we couldn't even connect to the Parse Cloud!"); } else if (error) {     NSLog(@"Error: %@", [error userInfo][@"error"]); }
+    }
+}
+```
+
+For synchronous (non-background) methods, error handling is mostly the same except that instead of a `NSNumber` representing success or failure you'll get an actual `BOOL` directly.
+
+By default, all connections have a timeout of 10 seconds, so the synchronous methods will not hang indefinitely.
+
+For a list of all possible `NSError` types, see the Error Codes section of the [API](/docs/ios) [API](/docs/osx).
+
+# Security
+
+We strongly recommend that you build your applications to restrict access to data as much as possible.  With this in mind, we recommend that you enable automatic [anonymous user creation](#users-anonymous) and [specify a default ACL based upon the current user](#users-acls) when your application is initialized.  Explicitly set public writability (and potentially public readability) on an object-by-object basis in order to protect your data from unauthorized access.
+
+Consider adding the following code to your application startup:
+
+```objc
+[PFUser enableAutomaticUser];
+PFACL *defaultACL = [PFACL ACL];
+// Optionally enable public read access while disabling public write access.
+// [defaultACL setPublicReadAccess:YES];
+[PFACL setDefaultACL:defaultACL withAccessForCurrentUser:YES];
+```
+```swift
+PFUser.enableAutomaticUser()
+var defaultACL = PFACL.ACL()
+// Optionally enable public read access while disabling public write access.
+// defaultACL.setPublicReadAccess(true)
+PFACL.setDefaultACL(defaultACL, withAccessForCurrentUser:true)
+```
+
+Please keep secure access to your data in mind as you build your applications for the protection of both you and your users.
+
+Our [ Data &amp; Security Guide](/docs/data#security) has detailed descriptions of the various ways Parse can help keep your app's data safe.
+
+## Settings
+
+In addition to coding securely, please review the settings pages for your applications to select options that will restrict access to your applications as much as is appropriate for your needs.  For example, if users should be unable to log in without a Facebook account linked to their application, disable all other login mechanisms.  Specify your Facebook application IDs, Twitter consumer keys, and other such information to enable server-side validation of your users' login attempts.
