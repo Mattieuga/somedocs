@@ -1,12 +1,13 @@
-# Push Notification Guide
+# Push Notifications
 
-If you haven't installed the SDK yet, please <%= link_to 'head over to the Push QuickStart', "/apps/quickstart_push" %> to get our SDK up and running.
+If you haven't installed the SDK yet, please [head over to the Push QuickStart](/apps/quickstart_push) to get our SDK up and running.
 
 Push Notifications are a great way to keep your users engaged and informed about your app. You can reach your entire user base quickly and effectively. This guide will help you through the setup process and the general usage of Parse to send push notifications.
 
 ## Setting Up Push
 
-<div class="right_pic"> [<%= image_tag 'docs/tutorial_link.png', :class => 'tutorial' %>](/tutorials/ios-push-notifications) Follow the iOS push tutorial.
+<div class="right_pic">
+    ![docs/tutorial_link.png](/tutorials/ios-push-notifications) Follow the iOS push tutorial.
 </div>
 
 If you want to start using push, start by completing the [iOS Push tutorial](/tutorials/ios-push-notifications) to learn how to configure your app. Come back to this guide afterwards to learn more about the push features offered by Parse.
