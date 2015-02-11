@@ -12,13 +12,14 @@ The Parse iOS/OSX SDK provides a local datastore which can be used to store and 
 
 @end
 ```
+```swift
+```
 
 There are a couple of side effects of enabling the local datastore that you should be aware of. When enabled, there will only be one instance of any given `PFObject`. For example, imagine you have an instance of the `"GameScore"` class with an `objectId` of `"xWMyZ4YEGZ"`, and then you issue a `PFQuery` for all instances of `"GameScore"` with that `objectId`. The result will be the same instance of the object you already have in memory.
 
 Another side effect is that the current user and current installation will be stored in the local datastore, so you can persist unsaved changes to these objects between runs of your app using the methods below.
 
 Calling the `saveEventually` method on a `PFObject` will cause the object to be pinned in the local datastore until the save completes. So now, if you change the current `PFUser` and call `[[PFUser currentUser] saveEventually]`, your app will always see the changes that you have made.
-
 
 ## Pinning
 
@@ -48,7 +49,6 @@ If you have multiple objects, you can pin them all at once with the `pinAllInBac
 PFObject.pinAllInBackground(listOfObjects)
 ```
 
-
 ## Retrieving from the Local Datastore
 
 Storing objects is great, but it's only useful if you can then get the objects back out later. Retrieving an object from the local datastore works just like retrieving one over the network. The only difference is calling the `fromLocalDatastore` method to tell the `PFQuery` where to look for its results.
@@ -66,7 +66,8 @@ PFQuery *query = [PFQuery queryWithClassName:@"GameScore"];
   return task;
 }];
 ```
-
+```swift
+```
 
 ## Querying the Local Datastore
 
@@ -86,7 +87,8 @@ PFQuery *query = [PFQuery queryWithClassName:@"GameScore"];
   return task;
 }];
 ```
-
+```swift
+```
 
 ## Unpinning
 
@@ -107,7 +109,6 @@ There's also a method to unpin several objects at once.
 ```swift
 PFObject.unpinAllInBackground(listOfObjects)
 ```
-
 
 ## Pinning with Labels
 
@@ -138,7 +139,6 @@ PFObject.unpinAllObjectsInBackgroundWithName("MyScores")
 ```
 
 Any object will stay in the datastore as long as it is pinned with any label. In other words, if you pin an object with two different labels, and then unpin it with one label, the object will stay in the datastore until you also unpin it with the other label.
-
 
 ## Caching Query Results
 
@@ -203,7 +203,6 @@ query.findObjectsInBackground().continueWithBlock({
     return task
 })
 ```
-
 
 ## Syncing Local Changes
 

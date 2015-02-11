@@ -697,3 +697,28 @@ query.findObjectsInBackgroundWithBlock {
 You can add additional constraints to the newly created `PFQuery` that act as an 'and' operator.
 
 Note that we do not, however, support GeoPoint or non-filtering constraints (e.g. `nearGeoPoint`, `withinGeoBox...:`, `limit`, `skip`, `orderBy...:`, `includeKey:`) in the subqueries of the compound query.
+
+## Subclass Queries
+
+You can get a query for objects of a particular subclass using the class method `query`. The following example queries for armors that the user can afford:
+
+```objc
+PFQuery *query = [Armor query];
+[query whereKey:@"rupees" lessThanOrEqualTo:[PFUser currentUser][@"rupees"]];
+[query findObjectsInBackgroundWithBlock:^(NSArray *objects, NSError *error) {
+  if (!error) {
+    Armor *firstArmor = [objects firstObject];
+    // ...
+  }
+}];
+```
+```swift
+let query = Armor.query()
+query.whereKey("rupees", lessThanOrEqualTo: PFUser.currentUser()["rupees"])
+query.findObjectsInBackgroundWithBlock { (objects: [AnyObject]!, error: NSError!) -> Void in
+  if error == nil {
+    let firstArmor = objects.first
+    //...
+  }
+}
+```

@@ -76,8 +76,10 @@ Of course, after you allow users to sign up, you need to let them log in to thei
 ```objc
 [PFUser logInWithUsernameInBackground:@"myname" password:@"mypass"
   block:^(PFUser *user, NSError *error) {
-    if (user) { // Do stuff after successful login.
-    } else { // The login failed. Check error to see why.
+    if (user) { 
+      // Do stuff after successful login.
+    } else { 
+      // The login failed. Check error to see why.
     }
 }];
 ```
@@ -450,8 +452,6 @@ The User class is a special class that is dedicated to storing `PFUser` objects.
 
 ## Facebook Users
 
-<div class="content_option" data-platform="iOS">
-
 Parse provides an easy way to integrate Facebook with your application. The Facebook SDK can be used with our SDK, and is integrated with the `PFUser` class to make linking your users to their Facebook identities easy.
 
 <div class="callout_green">
@@ -511,7 +511,7 @@ func applicationDidBecomeActive(application: UIApplication) {
 
 There are two main ways to use Facebook with your Parse users: (1) to log in (or sign up) as a Facebook user and creating a `PFUser`, or (2) linking Facebook to an existing `PFUser`.
 
-### Log In &amp; Sign Up
+### Log In & Sign Up
 
 `PFUser` provides a way to allow your users to log in or sign up through Facebook. This is done by using the `logInWithPermissions` method like so:
 
@@ -615,18 +615,7 @@ The Facebook iOS SDK provides a number of helper classes for interacting with Fa
 
 Our library manages the user's `FBSession` object for you. You can simply call `[PFFacebookUtils session]` to access the session instance, which can then be passed to `FBRequest`s.
 
-</div>
-
-<div class="content_option" data-platform="OSX">
-  <div class="callout_red">
-    Facebook integration is currently only available on iOS.
-  </div>
-</div>
-
-
 ## Twitter Users
-
-<div class="content_option" data-platform="iOS">
 
 As with Facebook, Parse also provides an easy way to integrate Twitter authentication into your application. The Parse SDK provides a straightforward way to authorize and link a Twitter account to your `PFUser`s. With just a few lines of code, you'll be able to provide a "log in with Twitter" option in your app, and be able to save their data to Parse.
 
@@ -733,10 +722,3 @@ NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:verify];
 NSURLResponse *response = nil;
 NSData *data = [NSURLConnection sendSynchronousRequest:request      returningResponse:&response  error:&error];
 ```
-
-</div>
-<div class="content_option" data-platform="OSX">
-  <div class="callout_red">
-    Twitter integration is currently only available on iOS.
-  </div>
-</div>

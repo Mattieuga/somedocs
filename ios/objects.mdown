@@ -581,7 +581,6 @@ The following code sucessfully declares, implements, and registers the `Armor` s
   return @"Armor";
 }
 @end
-
 ```
 ```swift
 // Armor.swift
@@ -612,6 +611,8 @@ Adding custom properties and methods to your `PFObject` subclass helps encapsula
 // Armor.m
 @dynamic displayName;
 ```
+```swift
+```
 
 You can access the displayName property using `armor.displayName` or `[armor displayName]` and assign to it using `armor.displayName = @"Wooden Shield"` or `[armor setDisplayName:@"Wooden Sword"]`. Dynamic properties allow Xcode to provide autocomplete and catch typos.
 
@@ -620,6 +621,8 @@ You can access the displayName property using `armor.displayName` or `[armor dis
 ```objc
 @property BOOL fireProof;
 @property int rupees;
+```
+```swift
 ```
 
 In this case, `game[@"fireProof"]` will return an `NSNumber` which is accessed using `boolValue` and `game[@"rupees"]` will return an `NSNumber` which is accessed using `intValue`, but the `fireProof` property is an actual `BOOL` and the `rupees` property is an actual `int`. The dynamic getter will automatically extract the `BOOL` or `int` value and the dynamic setter will automatically wrap the value in an `NSNumber`. You are free to use either format. Primitive property types are easier to use but `NSNumber` property types support nil values more clearly.
@@ -636,32 +639,9 @@ If you need more complicated logic than simple property access, you can declare 
   return [view autorelease];
 }
 ```
+```swift
+```
 
 ## Initializing Subclasses
 
 You should create new objects with the `object` class method. This constructs an autoreleased instance of your type and correctly handles further subclassing. To create a reference to an existing object, use `objectWithoutDataWithObjectId:`.
-
-## Queries
-
-You can get a query for objects of a particular subclass using the class method `query`. The following example queries for armors that the user can afford:
-
-```objc
-PFQuery *query = [Armor query];
-[query whereKey:@"rupees" lessThanOrEqualTo:[PFUser currentUser][@"rupees"]];
-[query findObjectsInBackgroundWithBlock:^(NSArray *objects, NSError *error) {
-  if (!error) {
-    Armor *firstArmor = [objects firstObject];
-    // ...
-  }
-}];
-```
-```swift
-let query = Armor.query()
-query.whereKey("rupees", lessThanOrEqualTo: PFUser.currentUser()["rupees"])
-query.findObjectsInBackgroundWithBlock { (objects: [AnyObject]!, error: NSError!) -> Void in
-  if error == nil {
-    let firstArmor = objects.first
-    //...
-  }
-}
-```

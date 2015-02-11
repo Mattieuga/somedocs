@@ -1,7 +1,5 @@
 # User Interface
 
-<div class="content_option" data-platform="iOS">
-
 At the end of the day, users of your app are going to be interacting with UIKit components.
 
 [ParseUI](https://github.com/ParsePlatform/ParseUI-iOS) is an opensource collection of a handy user interface components aimed to streamline and simplify user authentication, displaying lists of data, and other common app elements.
@@ -34,7 +32,7 @@ self.presentViewController(logInController, animated:true, completion: nil)
 ### Configuring the Log In Elements
 
 <div class="center_pic">
-  <%= image_tag 'docs/login/login_diagram.jpg' %> All elements of the PFLogInViewController
+  ![Login Diagram](docs/login/login_diagram.jpg) All elements of the PFLogInViewController
 </div>
 
 `PFLogInViewController` can be configured to provide a variety of log in options. By default, `PFLogInViewController` presents the following UI:
@@ -55,19 +53,17 @@ Any of the above features can be turned on or off. The options can be set using 
 
 ```
 
-<div class="clear"></div>
 <div class="three_pics">
   <div class="inner" style="width: 690px"> <div class="left_pic">     
-    <%= image_tag 'docs/login/login_simple.png' %> With username/password.
+    ![Login simple](docs/login/login_simple.png) With username/password.
   </div>
   <div class="left_pic">
-    <%= image_tag 'docs/login/login_default.png' %> With default settings.
+    ![Login default](docs/login/login_default.png) With default settings.
   </div>
   <div class="left_pic">     
-    <%= image_tag 'docs/login/login_all.png' %> All elements.
+    ![Login all](docs/login/login_all.png) All elements.
   </div>
 </div>
-<div class="clear"></div>
 
 Essentially, you use the bitwise or operator (`|`) to chain up all the options you want to include in the log in screen, and assign the value to `fields`.
 
@@ -79,10 +75,14 @@ In addition, there are a number of other options that can be turned on, includin
 Similarly, you can turn on Facebook or Twitter log in as such:
 
 ```objc
-logInController.fields = (PFLogInFieldsUsernameAndPassword   | PFLogInFieldsFacebook   | PFLogInFieldsTwitter);
+logInController.fields = (PFLogInFieldsUsernameAndPassword
+                          | PFLogInFieldsFacebook
+                          | PFLogInFieldsTwitter);
 ```
 ```swift
-logInController.fields = (PFLogInFields.UsernameAndPassword   | PFLogInFields.Facebook   | PFLogInFields.Twitter)
+logInController.fields = (PFLogInFields.UsernameAndPassword
+                          | PFLogInFields.Facebook
+                          | PFLogInFields.Twitter)
 ```
 
 The above code would produce a log in screen that includes username, password, Facebook and Twitter buttons. Facebook log in permissions can be set via the `facebookPermissions`.
@@ -105,7 +105,8 @@ self.presentViewController(logInController, animated:true, completion:nil)
 When the user signs in or cancels, the `PFLogInViewController` notifies the delegate of the event. Upon receiving this callback, the delegate should, at a minimum, dismiss `PFLogInViewController`. Additionally, the delegate could possibly update its own views or forward the message to the other components that need to know about the `PFUser`.
 
 ```objc
-- (void)logInViewController:(PFLogInViewController *)controller        didLogInUser:(PFUser *)user {
+- (void)logInViewController:(PFLogInViewController *)controller
+               didLogInUser:(PFUser *)user {
     [self dismissViewControllerAnimated:YES completion:nil];
 }
 
@@ -247,7 +248,7 @@ That is all you need to do to get a functional sign up screen.
 ### Configuring the Sign Up Elements
 
 <div class="center_pic">
-  <%= image_tag 'docs/signup/signup_diagram.jpg' %> All elements of the PFSignUpViewController
+  ![Signup Diagram](docs/signup/signup_diagram.jpg) All elements of the PFSignUpViewController
 </div>
 
 `PFSignUpViewController` can be configured to provide a variety of sign up options. By default, it presents the following UI:
@@ -260,22 +261,30 @@ That is all you need to do to get a functional sign up screen.
 If your sign up screen requires an additional field on top of the default ones, such as "phone number", you can turn on a field called named "additional":
 
 ```objc
-signUpController.fields = (PFSignUpFieldsUsernameAndPassword    | PFSignUpFieldsSignUpButton    | PFSignUpFieldsEmail    | PFSignUpFieldsAdditional    | PFSignUpFieldsDismissButton);
+signUpController.fields = (PFSignUpFieldsUsernameAndPassword
+                          | PFSignUpFieldsSignUpButton
+                          | PFSignUpFieldsEmail
+                          | PFSignUpFieldsAdditional
+                          | PFSignUpFieldsDismissButton);
 ```
 ```swift
-signUpController.fields = (PFSignUpFields.UsernameAndPassword    | PFSignUpFields.SignUpButton    | PFSignUpFields.Email    | PFSignUpFields.Additional    | PFSignUpFields.DismissButton)
+signUpController.fields = (PFSignUpFields.UsernameAndPassword
+                          | PFSignUpFields.SignUpButton
+                          | PFSignUpFields.Email
+                          | PFSignUpFields.Additional
+                          | PFSignUpFields.DismissButton)
 ```
 
 <div class="three_pics"> 
   <div class="inner" style="width: 690px">     
     <div class="left_pic"> 
-      <%= image_tag 'docs/signup/signup_simple.png' %> With username/password.
+      ![](docs/signup/signup_simple.png) With username/password.
     </div>
     <div class="left_pic"> 
-      <%= image_tag 'docs/signup/signup_email.png' %> With default settings.
+      ![](docs/signup/signup_email.png) With default settings.
     </div>
     <div class="left_pic"> 
-      <%= image_tag 'docs/signup/signup_all.png' %> All elements.
+      ![](docs/signup/signup_all.png) All elements.
     </div>
   </div>
 </div>
@@ -348,14 +357,17 @@ class MySignUpViewController : PFSignUpViewController {
 Often you will want to run some client-side validation on the sign up information before submitting it to the Parse Cloud. You can add your validation logic in the `signUpViewController:shouldBeginSignUp:` method in the `PFSignUpViewControllerDelegate`. For example, if you decide any password less than 8 characters is too short, you can achieve the following with:
 
 ```objc
-- (BOOL)signUpViewController:(PFSignUpViewController *)signUpController    shouldBeginSignUp:(NSDictionary *)info {
+- (BOOL)signUpViewController:(PFSignUpViewController *)signUpController
+           shouldBeginSignUp:(NSDictionary *)info {
     NSString *password = info[@"password"];
     return (password.length >= 8); // prevent sign up if password has to be at least 8 characters long
 }
 ```
 ```swift
-func signUpViewController(signUpController: PFSignUpViewController!,   shouldBeginSignUp info: [NSObject : AnyObject]!) -> Bool {
-    if let password = info?["password"] as? String { return password.utf16Count >= 8
+func signUpViewController(signUpController: PFSignUpViewController!,
+                          shouldBeginSignUp info: [NSObject : AnyObject]!) -> Bool {
+    if let password = info?["password"] as? String {
+      return password.utf16Count >= 8
     }
     return false
 }
@@ -429,7 +441,7 @@ You use `PFQueryTableViewController` much like how you would use `UITableViewCon
 4.  Override the `queryForTable` method to construct a custom `PFQuery` that should be used to get objects for the table.
 5.  Override the `tableView:cellForRowAtIndexPath:object:` method to return a custom cell tailored for each `PFObject`.
 6.  Implement your custom cell class; makes sure it inherits from `PFTableViewCell` class.
-      <li>When the view loads, the class automatically grabs the `PFObject`s via the constructed query and loads it into the table. It even includes pagination and pull-to-refresh out of the box.
+7.  When the view loads, the class automatically grabs the `PFObject`s via the constructed query and loads it into the table. It even includes pagination and pull-to-refresh out of the box.
 
 The class allows you to think about a one-to-one mapping between a `PFObject` and a `UITableViewCell`, rather than having to juggle index paths. You also get the following features out of the box:
 
@@ -449,10 +461,13 @@ The easiest way to understand this class is with an example. This subclass of `P
 
 @implementation SimpleTableViewController
 
-- (instancetype)initWithStyle:(UITableViewStyle)style
-{
+- (instancetype)initWithStyle:(UITableViewStyle)style {
     self = [super initWithStyle:style];
-    if (self) { // This table displays items in the Todo class self.parseClassName = @"Todo"; self.pullToRefreshEnabled = YES; self.paginationEnabled = YES; self.objectsPerPage = 25;
+    if (self) { // This table displays items in the Todo class 
+      self.parseClassName = @"Todo"; 
+      self.pullToRefreshEnabled = YES; 
+      self.paginationEnabled = YES; 
+      self.objectsPerPage = 25;
     }
     return self;
 }
@@ -462,7 +477,8 @@ The easiest way to understand this class is with an example. This subclass of `P
 
     // If no objects are loaded in memory, we look to the cache first to fill the table
     // and then subsequently do a query against the network.
-    if (self.objects.count == 0) { query.cachePolicy = kPFCachePolicyCacheThenNetwork;
+    if (self.objects.count == 0) { 
+      query.cachePolicy = kPFCachePolicyCacheThenNetwork;
     }
 
     [query orderByDescending:@"createdAt"];
@@ -470,12 +486,15 @@ The easiest way to understand this class is with an example. This subclass of `P
     return query;
 }
 
-- (UITableViewCell *)tableView:(UITableView *)tableView  cellForRowAtIndexPath:(NSIndexPath *)indexPath object:(PFObject *)object
-{
+- (UITableViewCell *)tableView:(UITableView *)tableView  
+         cellForRowAtIndexPath:(NSIndexPath *)indexPath 
+                        object:(PFObject *)object {
     static NSString *cellIdentifier = @"cell";
 
     PFTableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:cellIdentifier];
-    if (!cell) { cell = [[PFTableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle       reuseIdentifier:cellIdentifier];
+    if (!cell) { 
+      cell = [[PFTableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle
+                                    reuseIdentifier:cellIdentifier];
     }
 
     // Configure the cell to show todo item with a priority at the bottom
@@ -489,7 +508,7 @@ The easiest way to understand this class is with an example. This subclass of `P
 ```
 
 <div class="right_pic">
-  <%= image_tag 'docs/todo_view.gif' %> A query table showing Todo items.
+  ![Todo view](docs/todo_view.gif) A query table showing Todo items.
 </div>
 
 This view shows a list of Todo items and also allows the user to pull-to-refresh and load the next page by touching a special pagination cell at the end of the table. It also properly caches the objects such that  when the view is no longer in memory, the next time it loads it will use the query cache to immediately show the previously loaded objects while making a network call to update.
@@ -521,7 +540,7 @@ A good starting point to learn more is to look at the [API for the class](/docs/
 ```
 
 <div class="right_pic">
-    <%= image_tag 'docs/images_table.png' %> A query table that automatically downloads and displays remote images in cells.
+    ![](docs/images_table.png) A query table that automatically downloads and displays remote images in cells.
 </div>
 
 This table shows a list of cute animal photos which are stored in the Parse Cloud, as `PFFile`s. "placeholder.jpg" is an image included in the application bundle which is shown before the animal photos are downloaded.
@@ -547,7 +566,7 @@ Several methods are exposed that are called at major events during the data life
 ### Pagination
 
 <div class="right_pic">
-  <%= image_tag 'docs/pagination.png' %>
+  ![](docs/pagination.png)
 </div>
 
 Pagination ensures that the table only gets one page of objects at a time. You can customize how many objects are in a page by setting the `objectsPerPage` instance variable.
@@ -559,7 +578,7 @@ Pagination is turned on by default. If you want to turn it off, simply set `pagi
 ### Pull to Refresh
 
 <div class="right_pic">
-  <%= image_tag 'docs/pull_to_refresh.png' %>
+  ![](docs/pull_to_refresh.png)
 </div>
 
 Pull to Refresh is a feature that allows users to pull the table down and release to reload the data. Essentially, the first page of data is reloaded from your class and the table is cleared and updated with the data.
@@ -643,16 +662,7 @@ Included in  the Parse SDK is a file named `Localizable.string` which includes a
 
 The string is now customized.
 
-</div>
-<div class="content_option" data-platform="OSX">
-  <div class="callout_red">
-    User Interface helpers are currently only available for iOS.
-  </div>
-</div>
-
 ## In-App Purchases
-
-<div class="content_option" data-platform="iOS">
 
 Parse provides a set of APIs for working with in-app purchases. Parse makes it easier to work with `StoreKit` and facilitates delivery of downloadable content with receipt verification in the cloud. Receipt verification is a mechanism that allows you to restrict downloads to only those users that have paid accordingly.
 
@@ -685,9 +695,11 @@ Note that this does not make the purchase, but simply registers a block to be ru
 ```objc
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     ...
-    [PFPurchase addObserverForProduct:@"Pro" block:^(SKPaymentTransaction *transaction) { isPro = YES;
+    [PFPurchase addObserverForProduct:@"Pro" block:^(SKPaymentTransaction *transaction) { 
+      isPro = YES;
     }];
-    [PFPurchase addObserverForProduct:@"VIP" block:^(SKPaymentTransaction *transaction) { isVip = YES;
+    [PFPurchase addObserverForProduct:@"VIP" block:^(SKPaymentTransaction *transaction) { 
+      isVip = YES;
     }];
 }
 ```
@@ -695,7 +707,8 @@ Note that this does not make the purchase, but simply registers a block to be ru
 
 ```js
 [PFPurchase buyProduct:@"Pro" block:^(NSError *error) {
-    if (!error) { // Run UI logic that informs user the product has been purchased, such as displaying an alert view.
+    if (!error) { 
+      // Run UI logic that informs user the product has been purchased, such as displaying an alert view.
     }
 }];
 ```
@@ -707,7 +720,6 @@ The call to `buyProduct:block:` brings up a dialogue that asks users to enter th
 Many IAP products such as books and movies have associated content files that should be downloaded once the purchase is made. This is very simple to do with Parse:
 
 1.  First, go to the web data browser and create a `Product` class,
-
 2.  For each product, fill in the required metadata information and upload the content files:
  1.  `productIdentifier:` the product identifier of the product, matching the one in iTunes Connect</code>
  2.  `icon:` the icon to be displayed in `PFProductTableViewController`
@@ -733,7 +745,8 @@ Note that this does not make the purchase, but simply registers a block to be ru
 
 ```js
 [PFPurchase buyProduct:@"Pro" block:^(NSError *error) {
-    if (!error) { // run UI logic that informs user the product has been purchased, such as displaying an alert view.
+    if (!error) { 
+      // run UI logic that informs user the product has been purchased, such as displaying an alert view.
     }
 }];
 ```
@@ -755,15 +768,9 @@ NSLog(@"%@, %@", product.productIdentifier, product.title);
 ## PFProductTableViewController
 
 <div class="right_pic query_table" style="width: 260px">
-  <%= image_tag 'docs/products_table_screenshot.png', :class => 'border' %> An example of a products table in a magazine app.
+  ![](docs/products_table_screenshot.png) An example of a products table in a magazine app.
 </div>
 
 `PFProductTableViewController` is a subclass of `PFQueryTableViewController` that displays all IAP products in a table view. Some content apps, such as an app that sells comic books or video tutorials, may find it handy to use `PFProductTableViewController` to sell the products. By default, each cell is a product, and tapping on a cell initiates the purchase for the product. If the product has associated downloadable content, the download will start when the cell is selected and a progress bar is displayed to indicate the progress of the download.
 
 Note that in order to use this class, you must enter all product information in the `Product` class via the data browser.
-
-<div class="content_option" data-platform="OSX">
-  <div class="callout_red">
-    In-App Purchases through Parse are currently only available on iOS.
-  </div>
-</div>
