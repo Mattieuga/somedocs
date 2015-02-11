@@ -646,7 +646,8 @@ Although it can be used independently, `PFTableViewCell` really shines when used
 All strings in Parse's UI classes are customizable/localizable. The easiest way to customize a string is through the [default localization support](https://developer.apple.com/internationalization/) provided by iOS.
 
 Say, for example, you would like to customize the loading message in the HUD of `PFSignUpViewController` that says "Loading..." Assume you have followed the localization guide and set up `Localizable.strings` in the `en.lproj` directory. In `Localizable.strings`, you can then enter:
-<%= code do%>
+
+```js
 "Loading..." = "In progress";
 ```
 
@@ -656,7 +657,7 @@ Say, you would like to customize the error message in `PFSignUpViewController` t
 
 Included in  the Parse SDK is a file named `Localizable.string` which includes all the localizable keys in the Parse framework. Browsing this file, developers can find the key for the string they would like to customize. You notice that the string "The email address \"%@\" is invalid. Please enter a valid email." is a key in the file. In your own `Localizable.strings`, you can then enter:
 
-<%= code do%>
+```json
 "The email address \"%@\" is invalid. Please enter a valid email." = "Wrong email: \"%@\"";
 ```
 
