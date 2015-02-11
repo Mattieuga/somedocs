@@ -32,7 +32,7 @@ self.presentViewController(logInController, animated:true, completion: nil)
 ### Configuring the Log In Elements
 
 <div class="center_pic">
-  ![Login Diagram](docs/login/login_diagram.jpg) All elements of the PFLogInViewController
+  ![Login Diagram](/docs/login/login_diagram.jpg) All elements of the PFLogInViewController
 </div>
 
 `PFLogInViewController` can be configured to provide a variety of log in options. By default, `PFLogInViewController` presents the following UI:
@@ -55,13 +55,13 @@ Any of the above features can be turned on or off. The options can be set using 
 
 <div class="three_pics">
   <div class="inner" style="width: 690px"> <div class="left_pic">     
-    ![Login simple](docs/login/login_simple.png) With username/password.
+    ![Login simple](/docs/login/login_simple.png) With username/password.
   </div>
   <div class="left_pic">
-    ![Login default](docs/login/login_default.png) With default settings.
+    ![Login default](/docs/login/login_default.png) With default settings.
   </div>
   <div class="left_pic">     
-    ![Login all](docs/login/login_all.png) All elements.
+    ![Login all](/docs/login/login_all.png) All elements.
   </div>
 </div>
 
@@ -248,7 +248,7 @@ That is all you need to do to get a functional sign up screen.
 ### Configuring the Sign Up Elements
 
 <div class="center_pic">
-  ![Signup Diagram](docs/signup/signup_diagram.jpg) All elements of the PFSignUpViewController
+  ![Signup Diagram](/docs/signup/signup_diagram.jpg) All elements of the PFSignUpViewController
 </div>
 
 `PFSignUpViewController` can be configured to provide a variety of sign up options. By default, it presents the following UI:
@@ -278,13 +278,13 @@ signUpController.fields = (PFSignUpFields.UsernameAndPassword
 <div class="three_pics"> 
   <div class="inner" style="width: 690px">     
     <div class="left_pic"> 
-      ![](docs/signup/signup_simple.png) With username/password.
+      ![](/docs/signup/signup_simple.png) With username/password.
     </div>
     <div class="left_pic"> 
-      ![](docs/signup/signup_email.png) With default settings.
+      ![](/docs/signup/signup_email.png) With default settings.
     </div>
     <div class="left_pic"> 
-      ![](docs/signup/signup_all.png) All elements.
+      ![](/docs/signup/signup_all.png) All elements.
     </div>
   </div>
 </div>
@@ -508,7 +508,7 @@ The easiest way to understand this class is with an example. This subclass of `P
 ```
 
 <div class="right_pic">
-  ![Todo view](docs/todo_view.gif) A query table showing Todo items.
+  ![Todo view](/docs/todo_view.gif) A query table showing Todo items.
 </div>
 
 This view shows a list of Todo items and also allows the user to pull-to-refresh and load the next page by touching a special pagination cell at the end of the table. It also properly caches the objects such that  when the view is no longer in memory, the next time it loads it will use the query cache to immediately show the previously loaded objects while making a network call to update.
@@ -540,7 +540,7 @@ A good starting point to learn more is to look at the [API for the class](/docs/
 ```
 
 <div class="right_pic">
-    ![](docs/images_table.png) A query table that automatically downloads and displays remote images in cells.
+    ![](/docs/images_table.png) A query table that automatically downloads and displays remote images in cells.
 </div>
 
 This table shows a list of cute animal photos which are stored in the Parse Cloud, as `PFFile`s. "placeholder.jpg" is an image included in the application bundle which is shown before the animal photos are downloaded.
@@ -566,7 +566,7 @@ Several methods are exposed that are called at major events during the data life
 ### Pagination
 
 <div class="right_pic">
-  ![](docs/pagination.png)
+  ![](/docs/pagination.png)
 </div>
 
 Pagination ensures that the table only gets one page of objects at a time. You can customize how many objects are in a page by setting the `objectsPerPage` instance variable.
@@ -578,7 +578,7 @@ Pagination is turned on by default. If you want to turn it off, simply set `pagi
 ### Pull to Refresh
 
 <div class="right_pic">
-  ![](docs/pull_to_refresh.png)
+  ![](/docs/pull_to_refresh.png)
 </div>
 
 Pull to Refresh is a feature that allows users to pull the table down and release to reload the data. Essentially, the first page of data is reloaded from your class and the table is cleared and updated with the data.
@@ -646,7 +646,8 @@ Although it can be used independently, `PFTableViewCell` really shines when used
 All strings in Parse's UI classes are customizable/localizable. The easiest way to customize a string is through the [default localization support](https://developer.apple.com/internationalization/) provided by iOS.
 
 Say, for example, you would like to customize the loading message in the HUD of `PFSignUpViewController` that says "Loading..." Assume you have followed the localization guide and set up `Localizable.strings` in the `en.lproj` directory. In `Localizable.strings`, you can then enter:
-<%= code do%>
+
+```js
 "Loading..." = "In progress";
 ```
 
@@ -654,9 +655,9 @@ That would customize the string to "In progress". The key on the left is the ori
 
 Say, you would like to customize the error message in `PFSignUpViewController` that says "The email address "andrew@x" is invalid. Please enter a valid email." You are not sure how to enter this into `Localizable.strings` because it contains a variable.
 
-Included in  the Parse SDK is a file named `Localizable.string` which includes all the localizable keys in the Parse framework. Browsing this file, developers can find the key for the string they would like to customize. You notice that the string "The email address \"%@\" is invalid. Please enter a valid email." is a key in the file. In your own `Localizable.strings`, you can then enter:
+Included in  the Parse SDK is a file named `Localizable.string` which includes all the localizable keys in the Parse framework. Browsing this file, developers can find the key for the string they would like to customize. You notice that the string `"The email address \"%@\" is invalid. Please enter a valid email."` is a key in the file. In your own `Localizable.strings`, you can then enter:
 
-<%= code do%>
+```json
 "The email address \"%@\" is invalid. Please enter a valid email." = "Wrong email: \"%@\"";
 ```
 
@@ -703,14 +704,19 @@ Note that this does not make the purchase, but simply registers a block to be ru
     }];
 }
 ```
+```swift
+```
+
 2.  To initiate a purchase, use the `+[PFPurchase buyProduct:block:]` method:
 
-```js
+```objc
 [PFPurchase buyProduct:@"Pro" block:^(NSError *error) {
     if (!error) { 
       // Run UI logic that informs user the product has been purchased, such as displaying an alert view.
     }
 }];
+```
+```swift
 ```
 
 The call to `buyProduct:block:` brings up a dialogue that asks users to enter their Apple credentials. When the user's identity is verified, the product will be purchased. If the product is non-consumable and has been purchased by the user before, the user will not be charged.
@@ -738,17 +744,21 @@ Note that the file uploaded in `download` is not publicly accessible, and only b
     }];
 }];
 ```
+```swift
+```
 
 Note that this does not make the purchase, but simply registers a block to be run if a purchase is made later. The call to `downloadAssetForTransaction:completion:` passes the receipt of the purchase to the Parse Cloud, which then verifies with Apple that the purchase was made. Once the receipt is verified, the purchased file is downloaded.
 
 4.  To make the purchase,
 
-```js
+```objc
 [PFPurchase buyProduct:@"Pro" block:^(NSError *error) {
     if (!error) { 
       // run UI logic that informs user the product has been purchased, such as displaying an alert view.
     }
 }];
+```
+```swift
 ```
 
 The call to `buyProduct:block:` brings up a dialogue that asks users to enter their Apple credentials. When the user's identity is verified, the product will be purchased.
@@ -759,16 +769,18 @@ You can query the product objects created in the data browser using `PFProduct`.
 
 For example, here's a simple query to get a product:
 
-```js
+```objc
 PFQuery *productQuery = [PFProduct query];
 PFProduct *product = [[productQuery findObjects] anyObject];
 NSLog(@"%@, %@", product.productIdentifier, product.title);
+```
+```swift
 ```
 
 ## PFProductTableViewController
 
 <div class="right_pic query_table" style="width: 260px">
-  ![](docs/products_table_screenshot.png) An example of a products table in a magazine app.
+  ![](/docs/products_table_screenshot.png) An example of a products table in a magazine app.
 </div>
 
 `PFProductTableViewController` is a subclass of `PFQueryTableViewController` that displays all IAP products in a table view. Some content apps, such as an app that sells comic books or video tutorials, may find it handy to use `PFProductTableViewController` to sell the products. By default, each cell is a product, and tapping on a cell initiates the purchase for the product. If the product has associated downloadable content, the download will start when the cell is selected and a progress bar is displayed to indicate the progress of the download.
