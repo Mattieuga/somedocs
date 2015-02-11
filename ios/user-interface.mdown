@@ -46,11 +46,18 @@ self.presentViewController(logInController, animated:true, completion: nil)
 Any of the above features can be turned on or off. The options can be set using the `fields` property on `PFLogInViewController`:
 
 ```objc
-  logInController.fields = (PFLogInFieldsUsernameAndPassword     | PFLogInFieldsLogInButton     | PFLogInFieldsSignUpButton     | PFLogInFieldsPasswordForgotten     | PFLogInFieldsDismissButton);
+  logInController.fields = (PFLogInFieldsUsernameAndPassword
+                           | PFLogInFieldsLogInButton
+                           | PFLogInFieldsSignUpButton
+                           | PFLogInFieldsPasswordForgotten
+                           | PFLogInFieldsDismissButton);
 ```
 ```swift
-  logInController.fields = (PFLogInFields.UsernameAndPassword     | PFLogInFields.LogInButton     | PFLogInFields.SignUpButton     | PFLogInFields.PasswordForgotten     | PFLogInFields.DismissButton)
-
+  logInController.fields = (PFLogInFields.UsernameAndPassword
+                           | PFLogInFields.LogInButton
+                           | PFLogInFields.SignUpButton
+                           | PFLogInFields.PasswordForgotten
+                           | PFLogInFields.DismissButton)
 ```
 
 <div class="three_pics">
@@ -677,12 +684,11 @@ Prior to using in-app purchases on Parse, you'll need to set up your app and pro
 
 Note that this is a tricky setup process so please ensure you follow Apple's documentation precisely.
 
-## Simple Purchases
+### Simple Purchases
 
 Once the setup above is complete, you can begin working with in-app purchases:
 
 1.  On the main thread, register the handlers for the products:
-
 ```objc
 // Use the product identifier from iTunes to register a handler.
 [PFPurchase addObserverForProduct:@"Pro" block:^(SKPaymentTransaction *transaction) {
@@ -693,7 +699,6 @@ Once the setup above is complete, you can begin working with in-app purchases:
 ```swift
 // no swift example
 ```
-
 Note that this does not make the purchase, but simply registers a block to be run if a purchase is made later. This registration must be done on the main thread, preferably as soon as the app is launched, i.e. in `application:didFinishLaunchingWithOptions:`. If there are multiple products, we recommend registering all product handlers in the same method, such as `application:didFinishLaunchingWithOptions`:
 
 ```objc
@@ -712,7 +717,6 @@ Note that this does not make the purchase, but simply registers a block to be ru
 ```
 
 2.  To initiate a purchase, use the `+[PFPurchase buyProduct:block:]` method:
-
 ```objc
 [PFPurchase buyProduct:@"Pro" block:^(NSError *error) {
     if (!error) { 
@@ -723,10 +727,9 @@ Note that this does not make the purchase, but simply registers a block to be ru
 ```swift
 // no swift example
 ```
-
 The call to `buyProduct:block:` brings up a dialogue that asks users to enter their Apple credentials. When the user's identity is verified, the product will be purchased. If the product is non-consumable and has been purchased by the user before, the user will not be charged.
 
-## Downloadable Purchases
+### Downloadable Purchases
 
 Many IAP products such as books and movies have associated content files that should be downloaded once the purchase is made. This is very simple to do with Parse:
 
@@ -738,11 +741,8 @@ Many IAP products such as books and movies have associated content files that sh
  4.  `subtitle:` the subtitle to be displayed in `PFProductTableViewController`
  5.  `order`: the order this product should appear in `PFProductTableViewController`. This is used only in `PFProductTableViewController`; fill in 0 if the order is not important,
  6.  `download`: the downloadable content file
-
 Note that the file uploaded in `download` is not publicly accessible, and only becomes available for download when a purchase is made. `downloadName` is the name of the file on disk once downloaded. You don't need to fill this in.
-
 3.  Next, you need to register the product handler:
-
 ```objc
 [PFPurchase addObserverForProduct:@"Pro" block:^(SKPaymentTransaction *transaction) {
     [PFPurchase downloadAssetForTransaction:transaction completion:^(NSString *filePath, NSError *error) { if (!error) {     // at this point, the content file is available at filePath. }
@@ -752,11 +752,8 @@ Note that the file uploaded in `download` is not publicly accessible, and only b
 ```swift
 // no swift example
 ```
-
 Note that this does not make the purchase, but simply registers a block to be run if a purchase is made later. The call to `downloadAssetForTransaction:completion:` passes the receipt of the purchase to the Parse Cloud, which then verifies with Apple that the purchase was made. Once the receipt is verified, the purchased file is downloaded.
-
 4.  To make the purchase,
-
 ```objc
 [PFPurchase buyProduct:@"Pro" block:^(NSError *error) {
     if (!error) { 
@@ -767,10 +764,9 @@ Note that this does not make the purchase, but simply registers a block to be ru
 ```swift
 // no swift example
 ```
-
 The call to `buyProduct:block:` brings up a dialogue that asks users to enter their Apple credentials. When the user's identity is verified, the product will be purchased.
 
-## Querying Product Information
+### Querying Product Information
 
 You can query the product objects created in the data browser using `PFProduct`. Like `PFUser` or `PFRole`, `PFProduct` is a subclass of `PFObject` that contains convenience accessors to various product-specific properties.
 

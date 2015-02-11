@@ -12,7 +12,7 @@ To enable Crash Reporting, add this line to your AppDelegate before you initiali
 
 // Setup Parse
 [Parse setApplicationId:@"parseAppId" clientKey:@"parseClientKey"];
-      ```
+```
 ```swift
 // Enable Crash Reporting
 ParseCrashReporting.enable();
