@@ -13,6 +13,7 @@ The Parse iOS/OSX SDK provides a local datastore which can be used to store and 
 @end
 ```
 ```swift
+// no swift example
 ```
 
 There are a couple of side effects of enabling the local datastore that you should be aware of. When enabled, there will only be one instance of any given `PFObject`. For example, imagine you have an instance of the `"GameScore"` class with an `objectId` of `"xWMyZ4YEGZ"`, and then you issue a `PFQuery` for all instances of `"GameScore"` with that `objectId`. The result will be the same instance of the object you already have in memory.
@@ -67,6 +68,7 @@ PFQuery *query = [PFQuery queryWithClassName:@"GameScore"];
 }];
 ```
 ```swift
+// no swift example
 ```
 
 ## Querying the Local Datastore
@@ -88,6 +90,7 @@ PFQuery *query = [PFQuery queryWithClassName:@"GameScore"];
 }];
 ```
 ```swift
+// no swift example
 ```
 
 ## Unpinning
