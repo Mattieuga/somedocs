@@ -61,7 +61,7 @@ Any of the above features can be turned on or off. The options can be set using 
 ```
 
 <div class="three_pics">
-  <div class="inner" style="width: 690px"> <div class="left_pic">     
+  <div class="left_pic">     
     ![Login simple](/images/docs/login/login_simple.png) With username/password.
   </div>
   <div class="left_pic">
