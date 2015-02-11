@@ -690,6 +690,9 @@ Once the setup above is complete, you can begin working with in-app purchases:
     isPro = YES;
 }];
 ```
+```swift
+// no swift example
+```
 
 Note that this does not make the purchase, but simply registers a block to be run if a purchase is made later. This registration must be done on the main thread, preferably as soon as the app is launched, i.e. in `application:didFinishLaunchingWithOptions:`. If there are multiple products, we recommend registering all product handlers in the same method, such as `application:didFinishLaunchingWithOptions`:
 
@@ -705,6 +708,7 @@ Note that this does not make the purchase, but simply registers a block to be ru
 }
 ```
 ```swift
+// no swift example
 ```
 
 2.  To initiate a purchase, use the `+[PFPurchase buyProduct:block:]` method:
@@ -717,6 +721,7 @@ Note that this does not make the purchase, but simply registers a block to be ru
 }];
 ```
 ```swift
+// no swift example
 ```
 
 The call to `buyProduct:block:` brings up a dialogue that asks users to enter their Apple credentials. When the user's identity is verified, the product will be purchased. If the product is non-consumable and has been purchased by the user before, the user will not be charged.
@@ -745,6 +750,7 @@ Note that the file uploaded in `download` is not publicly accessible, and only b
 }];
 ```
 ```swift
+// no swift example
 ```
 
 Note that this does not make the purchase, but simply registers a block to be run if a purchase is made later. The call to `downloadAssetForTransaction:completion:` passes the receipt of the purchase to the Parse Cloud, which then verifies with Apple that the purchase was made. Once the receipt is verified, the purchased file is downloaded.
@@ -759,6 +765,7 @@ Note that this does not make the purchase, but simply registers a block to be ru
 }];
 ```
 ```swift
+// no swift example
 ```
 
 The call to `buyProduct:block:` brings up a dialogue that asks users to enter their Apple credentials. When the user's identity is verified, the product will be purchased.
@@ -775,6 +782,7 @@ PFProduct *product = [[productQuery findObjects] anyObject];
 NSLog(@"%@, %@", product.productIdentifier, product.title);
 ```
 ```swift
+// no swift example
 ```
 
 ## PFProductTableViewController
