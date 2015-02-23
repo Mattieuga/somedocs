@@ -467,10 +467,11 @@ To start using Facebook with Parse, you need to:
 3.  Follow Facebook's instructions for [getting started with the Facebook SDK](https://developers.facebook.com/docs/getting-started/facebook-sdk-for-ios/) to create an app linked to the Facebook SDK. Double-check that you have added FacebookAppID and URL Scheme values to your application's .plist file.
 4.  Download and unzip [Parse iOS SDK](/downloads/ios/parse-library/latest), if you haven't already.
 5.  Add `ParseFacebookUtils.framework` to your Xcode project, by dragging it into your project folder target.
-6.  Add the following where you initialize the Parse SDK, for example, like in `application:didFinishLaunchingWithOptions:`.
+
+There's also two code changes you'll need to make. First, add the following to your `application:didFinishLaunchingWithOptions:` method, after you've initialized the Parse SDK.
+
 ```objc
-// In app delegate 
- - (void)application:(UIApplication *)application didFinishLaunchWithOptions:(NSDictionary *)options {
+- (void)application:(UIApplication *)application didFinishLaunchWithOptions:(NSDictionary *)options {
     [Parse setApplicationId:@"parseAppId" clientKey:@"parseClientKey"];
     [PFFacebookUtils initializeFacebook];
 }
@@ -481,10 +482,11 @@ func application(application: UIApplication, didFinishLaunchingWithOptions launc
     PFFacebookUtils.initializeFacebook()
 }
 ```
-7.  In your app delegate, add the following handlers.
+
+Next, add the following handlers in your app delegate.
+
 ```objc
-// In app delegate 
- - (BOOL)application:(UIApplication *)application     openURL:(NSURL *)url
+- (BOOL)application:(UIApplication *)application     openURL:(NSURL *)url
   sourceApplication:(NSString *)sourceApplication  annotation:(id)annotation {
      return [FBAppCall handleOpenURL:url   sourceApplication:sourceApplication withSession:[PFFacebookUtils session]];
 }
