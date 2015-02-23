@@ -102,7 +102,7 @@ There are three `emailVerified` states to consider:
 
 1.  `true` - the user confirmed his or her email address by clicking on the link Parse emailed them. `PFUsers` can never have a `true` value when the user account is first created.
 2.  `false` - at the time the `PFUser` object was last refreshed, the user had not confirmed his or her email address. If `emailVerified` is `false`, consider calling `refresh:` on the `PFUser`.
-3.  _missing_ - the `PFUser` was created when email verification was off or the `PFUser` does not have an `email`.
+3.  **missing** - the `PFUser` was created when email verification was off or the `PFUser` does not have an `email`.
 
 
 ## Current User

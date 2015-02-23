@@ -33,11 +33,19 @@ application.registerForRemoteNotifications()
 We will then update our `PFInstallation` with the `deviceToken` once the device is registered for push notifications:
 
 ```objc
-- (void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken { // Store the deviceToken in the current Installation and save it to Parse. PFInstallation *currentInstallation = [PFInstallation currentInstallation]; [currentInstallation setDeviceTokenFromData:deviceToken]; [currentInstallation saveInBackground];
+- (void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken { 
+	// Store the deviceToken in the current Installation and save it to Parse 
+	PFInstallation *currentInstallation = [PFInstallation currentInstallation]; 
+	[currentInstallation setDeviceTokenFromData:deviceToken]; 
+	[currentInstallation saveInBackground];
 }
 ```
 ```swift
-func application(application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: NSData) { let installation = PFInstallation.currentInstallation() installation.setDeviceTokenFromData(deviceToken) installation.saveInBackground()
+func application(application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: NSData) { 
+	// Store the deviceToken in the current Installation and save it to Parse
+	let installation = PFInstallation.currentInstallation()
+	installation.setDeviceTokenFromData(deviceToken)
+	installation.saveInBackground()
 }
 ```
 
