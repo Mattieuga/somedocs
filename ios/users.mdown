@@ -469,20 +469,10 @@ To start using Facebook with Parse, you need to:
 5.  Add `ParseFacebookUtils.framework` to your Xcode project, by dragging it into your project folder target.
 6.  Add the following where you initialize the Parse SDK, for example, like in `application:didFinishLaunchingWithOptions:`.
 ```objc
-#import <ParseFacebookUtils/PFFacebookUtils.h>
-
-@implementation AppDelegate
-
-- (void)application:(UIApplication *)application didFinishLaunchWithOptions:(NSDictionary *)options {
-  [Parse setApplicationId:@"parseAppId" clientKey:@"parseClientKey"];
-  [PFFacebookUtils initializeFacebook];
-}
+[PFTwitterUtils initializeWithConsumerKey:@"YOUR CONSUMER KEY"    consumerSecret:@"YOUR CONSUMER SECRET"];
 ```
 ```swift
-func application(application: UIApplication, didFinishLaunchingWithOptions launchOptions: [NSObject: AnyObject]?) -> Bool {
-    Parse.setApplicationId("parseAppId", clientKey:"parseClientKey")
-    PFFacebookUtils.initializeFacebook()
-}
+PFTwitterUtils.initializeWithConsumerKey("YOUR CONSUMER KEY",  consumerSecret:"YOUR CONSUMER SECRET")
 ```
 7.  In your app delegate, add the following handlers.
 ```objc
