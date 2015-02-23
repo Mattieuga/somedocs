@@ -470,7 +470,7 @@ To start using Facebook with Parse, you need to:
 6.  Add the following where you initialize the Parse SDK, for example, like in `application:didFinishLaunchingWithOptions:`.
 ```objc
 // In app delegate
-- (void)application:(UIApplication *)application didFinishLaunchWithOptions:(NSDictionary *)options {
+— (void)application:(UIApplication *)application didFinishLaunchWithOptions:(NSDictionary *)options {
   [Parse setApplicationId:@"parseAppId" clientKey:@"parseClientKey"];
   [PFFacebookUtils initializeFacebook];
 }
@@ -483,7 +483,6 @@ func application(application: UIApplication, didFinishLaunchingWithOptions launc
 ```
 7.  In your app delegate, add the following handlers.
 ```objc
-// In app delegate
 - (BOOL)application:(UIApplication *)application     openURL:(NSURL *)url
   sourceApplication:(NSString *)sourceApplication  annotation:(id)annotation {
     return [FBAppCall handleOpenURL:url   sourceApplication:sourceApplication withSession:[PFFacebookUtils session]];
