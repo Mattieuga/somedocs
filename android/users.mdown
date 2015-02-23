@@ -326,7 +326,7 @@ query.findInBackground(new FindCallback<ParseObject>() { ... });
 
 ## Users in the Data Browser
 
-The User class is a special class that is dedicated to storing `ParseUser` objects. In the data browser, you'll see a little person icon next to the User class:
+The User class is a special class that is dedicated to storing `ParseUser` objects. In the data browser, you'll see a little person icon next to the User class.
 
 ## Facebook Users
 

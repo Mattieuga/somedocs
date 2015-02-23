@@ -446,9 +446,7 @@ post.save()
 
 ## Users in the Data Browser
 
-The User class is a special class that is dedicated to storing `PFUser` objects. In the data browser, you'll see a little person icon next to the User class:
-
-<%= image_tag 'docs/user_icon.png', :style => 'border: 1px solid #eee' %>
+The User class is a special class that is dedicated to storing `PFUser` objects. In the data browser, you'll see a little person icon next to the User class.
 
 ## Facebook Users
 
@@ -470,7 +468,6 @@ To start using Facebook with Parse, you need to:
 4.  Download and unzip [Parse iOS SDK](/downloads/ios/parse-library/latest), if you haven't already.
 5.  Add `ParseFacebookUtils.framework` to your Xcode project, by dragging it into your project folder target.
 6.  Add the following where you initialize the Parse SDK, for example, like in `application:didFinishLaunchingWithOptions:`
-
 ```objc
 #import <ParseFacebookUtils/PFFacebookUtils.h>
 
