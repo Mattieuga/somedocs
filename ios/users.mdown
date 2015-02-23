@@ -469,7 +469,7 @@ To start using Facebook with Parse, you need to:
 5.  Add `ParseFacebookUtils.framework` to your Xcode project, by dragging it into your project folder target.
 6.  Add the following where you initialize the Parse SDK, for example, like in `application:didFinishLaunchingWithOptions:`.
 ```objc
-- (void)application:(UIApplication *)application didFinishLaunchWithOptions:(NSDictionary *)options {
+application:(UIApplication *)application didFinishLaunchWithOptions:(NSDictionary *)options {
   [Parse setApplicationId:@"parseAppId" clientKey:@"parseClientKey"];
   [PFFacebookUtils initializeFacebook];
 }
