@@ -10,9 +10,9 @@ With this class, you'll be able to add user account functionality in your app.
 
 `PFUser` has several properties that set it apart from `PFObject`:
 
-*   username: The username for the user (required).
-*   password: The password for the user (required on signup).
-*   email: The email address for the user (optional).
+*   **username**: The username for the user (required).
+*   **password**: The password for the user (required on signup).
+*   **email**: The email address for the user (optional).
 
 We'll go through each of these in detail as we run through the various use cases for users. Keep in mind that if you set `username` and `email` through these properties, you do not need to set it using the `setObject:forKey:` method &mdash; this is set for you automatically.
 

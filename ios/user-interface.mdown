@@ -32,7 +32,7 @@ self.presentViewController(logInController, animated:true, completion: nil)
 ### Configuring the Log In Elements
 
 <div class="center_pic">
-  ![Login Diagram](/images/docs/login/login_diagram.jpg) All elements of the PFLogInViewController
+  ![Login Diagram](/images/docs/login_diagram.png)
 </div>
 
 `PFLogInViewController` can be configured to provide a variety of log in options. By default, `PFLogInViewController` presents the following UI:
@@ -59,18 +59,6 @@ Any of the above features can be turned on or off. The options can be set using 
                            | PFLogInFields.PasswordForgotten
                            | PFLogInFields.DismissButton)
 ```
-
-<div class="three_pics">
-  <div class="left_pic">     
-    ![Login simple](/images/docs/login/login_simple.png) With username/password.
-  </div>
-  <div class="left_pic">
-    ![Login default](/images/docs/login/login_default.png) With default settings.
-  </div>
-  <div class="left_pic">     
-    ![Login all](/images/docs/login/login_all.png) All elements.
-  </div>
-</div>
 
 Essentially, you use the bitwise or operator (`|`) to chain up all the options you want to include in the log in screen, and assign the value to `fields`.
 
@@ -254,9 +242,7 @@ That is all you need to do to get a functional sign up screen.
 
 ### Configuring the Sign Up Elements
 
-<div class="center_pic">
-  ![Signup Diagram](/images/docs/signup/signup_diagram.jpg) All elements of the PFSignUpViewController
-</div>
+![Signup Diagram](/images/docs/signup_diagram.png) All elements of the PFSignUpViewController
 
 `PFSignUpViewController` can be configured to provide a variety of sign up options. By default, it presents the following UI:
 
@@ -281,20 +267,6 @@ signUpController.fields = (PFSignUpFields.UsernameAndPassword
                           | PFSignUpFields.Additional
                           | PFSignUpFields.DismissButton)
 ```
-
-<div class="three_pics"> 
-  <div class="inner" style="width: 690px">     
-    <div class="left_pic"> 
-      ![](/images/docs/signup/signup_simple.png) With username/password.
-    </div>
-    <div class="left_pic"> 
-      ![](/images/docs/signup/signup_email.png) With default settings.
-    </div>
-    <div class="left_pic"> 
-      ![](/images/docs/signup/signup_all.png) All elements.
-    </div>
-  </div>
-</div>
 
 Essentially, you use the bitwise or operator (`|`) to chain up all the options you want to include in the sign up screen, and assign the value to `fields`. Similarly, you can turn off any field by omitting it in the assignment to fields.
 
@@ -514,9 +486,7 @@ The easiest way to understand this class is with an example. This subclass of `P
 @end
 ```
 
-<div class="right_pic">
-  ![Todo view](/images/docs/todo_view.gif) A query table showing Todo items.
-</div>
+![Todo view](/images/docs/todo_view.gif)
 
 This view shows a list of Todo items and also allows the user to pull-to-refresh and load the next page by touching a special pagination cell at the end of the table. It also properly caches the objects such that  when the view is no longer in memory, the next time it loads it will use the query cache to immediately show the previously loaded objects while making a network call to update.
 
@@ -546,9 +516,7 @@ A good starting point to learn more is to look at the [API for the class](/image
 @end
 ```
 
-<div class="right_pic">
-    ![](/images/docs/images_table.png) A query table that automatically downloads and displays remote images in cells.
-</div>
+![](/images/docs/images_table.png)
 
 This table shows a list of cute animal photos which are stored in the Parse Cloud, as `PFFile`s. "placeholder.jpg" is an image included in the application bundle which is shown before the animal photos are downloaded.
 
@@ -686,9 +654,9 @@ Note that this is a tricky setup process so please ensure you follow Apple's doc
 
 ### Simple Purchases
 
-Once the setup above is complete, you can begin working with in-app purchases:
+Once the setup above is complete, you can begin working with in-app purchases.
 
-1.  On the main thread, register the handlers for the products:
+On the main thread, register the handlers for the products:
 ```objc
 // Use the product identifier from iTunes to register a handler.
 [PFPurchase addObserverForProduct:@"Pro" block:^(SKPaymentTransaction *transaction) {
@@ -716,7 +684,7 @@ Note that this does not make the purchase, but simply registers a block to be ru
 // no swift example
 ```
 
-2.  To initiate a purchase, use the `+[PFPurchase buyProduct:block:]` method:
+To initiate a purchase, use the `+[PFPurchase buyProduct:block:]` method:
 ```objc
 [PFPurchase buyProduct:@"Pro" block:^(NSError *error) {
     if (!error) { 
@@ -727,6 +695,7 @@ Note that this does not make the purchase, but simply registers a block to be ru
 ```swift
 // no swift example
 ```
+
 The call to `buyProduct:block:` brings up a dialogue that asks users to enter their Apple credentials. When the user's identity is verified, the product will be purchased. If the product is non-consumable and has been purchased by the user before, the user will not be charged.
 
 ### Downloadable Purchases
@@ -783,9 +752,7 @@ NSLog(@"%@, %@", product.productIdentifier, product.title);
 
 ## PFProductTableViewController
 
-<div class="right_pic query_table" style="width: 260px">
-  ![](/images/docs/products_table_screenshot.png) An example of a products table in a magazine app.
-</div>
+![](/images/docs/products_table_screenshot.png)
 
 `PFProductTableViewController` is a subclass of `PFQueryTableViewController` that displays all IAP products in a table view. Some content apps, such as an app that sells comic books or video tutorials, may find it handy to use `PFProductTableViewController` to sell the products. By default, each cell is a product, and tapping on a cell initiates the purchase for the product. If the product has associated downloadable content, the download will start when the cell is selected and a progress bar is displayed to indicate the progress of the download.
 
