@@ -1,8 +1,8 @@
-## Queries
+# Queries
 
 We've already seen how a `Parse.Query` with `get` can retrieve a single `Parse.Object` from Parse. There are many other ways to retrieve data with `Parse.Query` - you can retrieve many objects at once, put conditions on the objects you wish to retrieve, and more.
 
-### Basic Queries
+## Basic Queries
 
 In many cases, `get` isn't powerful enough to specify which objects you want to retrieve. `Parse.Query` offers different ways to retrieve a list of objects rather than just a single object.
 
@@ -27,7 +27,7 @@ query.find({
 });
 ```
 
-### Query Constraints
+## Query Constraints
 
 There are several ways to put constraints on the objects found by a `Parse.Query`. You can filter out objects with a particular key-value pair with `notEqualTo`:
 
@@ -171,7 +171,7 @@ query.first().then(function(result) {
 });
 ```
 
-### Queries on Array Values
+## Queries on Array Values
 
 For keys with an array type, you can find objects where the key's array value contains 2 by:
 
@@ -187,7 +187,7 @@ You can also find objects where the key's array value contains each of the eleme
 query.containsAll("arrayKey", [2, 3, 4]);
 ```
 
-### Queries on String Values
+## Queries on String Values
 
 Use `startsWith` to restrict to string values that start with a particular string. Similar to a MySQL LIKE operator, this is indexed so it is efficient for large datasets:
 
@@ -201,7 +201,7 @@ query.startsWith("name", "Big Daddy's");
       If you're trying to implement a generic search feature, we recommend taking a look at this blog post: [Implementing Scalable Search on a NoSQL Backend](http://blog.parse.com/2013/03/19/implementing-scalable-search-on-a-nosql-backend/).
     </div>
 
-### Relational Queries
+## Relational Queries
 
 There are several ways to issue queries for relational data. If you want to retrieve objects where a field matches a particular `Parse.Object`, you can use `equalTo` just like for other data types. For example, if each `Comment` has a `Post` object in its `post` field, you can fetch comments for a particular `Post`:
 
@@ -290,7 +290,7 @@ query.include(["post.author"]);
 
 You can issue a query with multiple fields included by calling `include` multiple times. This functionality also works with Parse.Query helpers like `first` and `get`.
 
-### Counting Objects
+## Counting Objects
 
 Caveat: Count queries are rate limited to a maximum of 160 requests per minute.  They can also return inaccurate results for classes with more than 1,000 objects.  Thus, it is preferable to architect your application to avoid this sort of count operation (by using counters, for example.)
 
@@ -311,7 +311,7 @@ query.count({
 });
 ```
 
-### Compound Queries
+## Compound Queries
 
  If you want to find objects that match one of several queries, you can use `Parse.Query.or` method to construct a query that is an OR of the queries passed in.  For instance if you want to find players who either have a lot of wins or a few wins, you can do:
 
