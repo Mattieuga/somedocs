@@ -178,8 +178,7 @@ The only difference between using `averageStars` and `hello` is that we have to 
 
 Cloud functions can be called from any of the client SDKs, as well as through the REST API (use the drop-down in the example below to switch SDKs). For example, to call the Cloud function named `averageStars` with a parameter named `movie`:
 
-<div class="common-code-blocks">
-```java
+```common-java
 HashMap<String, Object> params = new HashMap<String, Object>();
 params.put("movie", "The Matrix");
 ParseCloud.callFunctionInBackground("averageStars", params, new FunctionCallback<Float>() {
@@ -190,7 +189,7 @@ ParseCloud.callFunctionInBackground("averageStars", params, new FunctionCallback
    }
 });
 ```
-```objc
+```common-objc
 [PFCloud callFunctionInBackground:@"averageStars"
                    withParameters:@{@"movie": @"The Matrix"}
                             block:^(NSNumber *ratings, NSError *error) {
@@ -199,20 +198,20 @@ ParseCloud.callFunctionInBackground("averageStars", params, new FunctionCallback
   }
 }];
 ```
-```swift
+```common-swift
 // no swift example
 ```
-```php
+```common-php
 // no php example
 ```
-```csharp
+```common-csharp
 IDictionary<string, object> params = new Dictionary<string, object>
 {
     { "movie", "The Matrix" }
 };
 var result = await ParseCloud.CallFunctionAsync<IDictionary<string, object>>("averageStars", params);
 ```
-```js
+```common-js
 Parse.Cloud.run('averageStars', { movie: 'The Matrix' }, {
   success: function(ratings) {
     // ratings should be 4.5
