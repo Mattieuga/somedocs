@@ -1,0 +1,315 @@
+
+## Promises
+
+In addition to callbacks, every asynchronous method in the Parse JavaScript SDK returns a `Promise`. With promises, your code can be much cleaner than the nested code you get with callbacks.
+
+    <%= anchor "promises-then" %>
+
+### The `then` Method
+
+Every `Promise` has a method named `then` which takes a pair of callbacks. The first callback is called if the promise is _resolved_, while the second is called if the promise is _rejected_.
+
+    <%= code :javascript do %>
+obj.save().then(function(obj) {
+  // the object was saved successfully.
+}, function(error) {
+  // the save failed.
+});
+    <% end %>
+
+    <%= anchor "promises-chaining" %>
+
+### Chaining Promises Together
+
+Promises are a little bit magical, in that they let you chain them without nesting. If a callback for a promise returns a new promise, then the first one will not be resolved until the second one is. This lets you perform multiple actions without incurring the pyramid code you would get with callbacks.
+
+    <%= code :javascript do %>
+var query = new Parse.Query("Student");
+query.descending("gpa");
+query.find().then(function(students) {
+  students[0].set("valedictorian", true);
+  return students[0].save();
+
+}).then(function(valedictorian) {
+  return query.find();
+
+}).then(function(students) {
+  students[1].set("salutatorian", true);
+  return students[1].save();
+
+}).then(function(salutatorian) {
+  // Everything is done!
+
+});
+    <% end %>
+
+    <%= anchor "promises-errors" %>
+
+### Error Handling
+
+If any Promise in a chain returns an error, all of the success callbacks after it will be skipped until an error callback is encountered. The error callback can transform the error, or it can handle it by returning a new Promise that isn't rejected. You can think of rejected promises kind of like throwing an exception. An error callback is like a catch block that can handle the error or rethrow it.
+
+    <%= code :javascript do %>
+var query = new Parse.Query("Student");
+query.descending("gpa");
+query.find().then(function(students) {
+  students[0].set("valedictorian", true);
+  // Force this callback to fail.
+  return Parse.Promise.error("There was an error.");
+
+}).then(function(valedictorian) {
+  // Now this will be skipped.
+  return query.find();
+
+}).then(function(students) {
+  // This will also be skipped.
+  students[1].set("salutatorian", true);
+  return students[1].save();
+}, function(error) {
+  // This error handler WILL be called. error will be "There was an error.".
+  // Let's handle the error by returning a new promise.
+  return Parse.Promise.as("Hello!");
+
+}).then(function(hello) {
+  // Everything is done!
+}, function(error) {
+  // This isn't called because the error was already handled.
+});
+    <% end %>
+
+It's often convenient to have a long chain of success callbacks with only one error handler at the end.
+
+    <%= anchor "promises-creation" %>
+
+### Creating Promises
+
+When you're getting started, you can just use the promises returned from methods like `find` or `save`. However, for more advanced scenarios, you may want to make your own promises. After you create a `Promise`, you'll need to call `resolve` or `reject` to trigger its callbacks.
+
+    <%= code :javascript do %>
+var successful = new Parse.Promise();
+successful.resolve("The good result.");
+
+var failed = new Parse.Promise();
+failed.reject("An error message.");
+    <% end %>
+
+If you know the result of a promise at the time it is created, there are some convenience methods you can use.
+
+    <%= code :javascript do %>
+var successful = Parse.Promise.as("The good result.");
+
+var failed = Parse.Promise.error("An error message.");
+    <% end %>
+
+    <%= anchor "promises-series" %>
+
+### Promises in Series
+
+Promises are convenient when you want to do a series of tasks in a row, each one waiting for the previous to finish. For example, imagine you want to delete all of the comments on your blog.
+
+    <%= code :javascript do %>
+var query = new Parse.Query("Comments");
+query.equalTo("post", 123);
+
+query.find().then(function(results) {
+  // Create a trivial resolved promise as a base case.
+  var promise = Parse.Promise.as();
+  _.each(results, function(result) {
+    // For each item, extend the promise with a function to delete it.
+    promise = promise.then(function() {
+      // Return a promise that will be resolved when the delete is finished.
+      return result.destroy();
+    });
+  });
+  return promise;
+
+}).then(function() {
+  // Every comment was deleted.
+});
+    <% end %>
+
+    <%= anchor "promises-parallel" %>
+
+### Promises in Parallel
+
+You can also use promises to perform several tasks in parallel, using the `when` method. You can start multiple operations at once, and use `Parse.Promise.when` to create a new promise that will be resolved when all of its input promises is resolved. The new promise will be successful if none of the passed-in promises fail; otherwise, it will fail with the last error. Performing operations in parallel will be faster than doing them serially, but may consume more system resources and bandwidth.
+
+    <%= code :javascript do %>
+var query = new Parse.Query("Comments");
+query.equalTo("post", 123);
+
+query.find().then(function(results) {
+  // Collect one promise for each delete into an array.
+  var promises = [];
+  _.each(results, function(result) {
+    // Start this delete immediately and add its promise to the list.
+    promises.push(result.destroy());
+  });
+  // Return a new promise that is resolved when all of the deletes are finished.
+  return Parse.Promise.when(promises);
+
+}).then(function() {
+  // Every comment was deleted.
+});
+    <% end %>
+
+    <%= anchor "promises-producer" %>
+
+### Creating Async Methods
+
+With these tools, it's easy to make your own asynchronous functions that return promises. For example, you can make a promisified version of `setTimeout`.
+
+    <%= code :javascript do %>
+var delay = function(millis) {
+  var promise = new Parse.Promise();
+  setTimeout(function() {
+    promise.resolve();
+  }, millis);
+  return promise;
+};
+
+delay(100).then(function() {
+  // This ran after 100ms!
+});
+    <% end %>
+
+    <%= anchor "collections" %>
+
+## Collections
+
+    <%= anchor "collections-extend" %>
+
+A `Parse.Collection` is an ordered set of `Parse.Object`s.  It is compatible with `[Backbone.Collection](http://documentcloud.github.com/backbone/#Collection)`, and has all the same functionality.  You can create a new subclass using either a model class, or a particular `Parse.Query`.
+
+    <%= code :javascript do %>
+// A Collection containing all instances of TestObject.
+var TestCollection = Parse.Collection.extend({
+  model: TestObject
+});
+var collection = new TestCollection();
+
+// A Collection of TestObjects whose temperature is "hot".
+var HotCollection = Parse.Collection.extend({
+  model: TestObject,
+  query: (new Parse.Query(TestObject)).equalTo("temperature", "hot")
+});
+var collection = new HotCollection();
+
+// The Collection of TestObjects that match a complex query.
+var query = new Parse.Query(TestObject);
+query.equalTo("temperature", "hot");
+query.greaterThan("degreesF", 100);
+var collection = query.collection();
+    <% end %>
+
+    <%= anchor "collections-fetch" %>
+
+### Retrieving Collections
+
+To load all of the items in the collection, use the `fetch` method.
+
+    <%= code :javascript do %>
+var collection = new TestCollection();
+collection.fetch({
+  success: function(collection) {
+    collection.each(function(object) {
+      console.warn(object);
+    });
+  },
+  error: function(collection, error) {
+    // The collection could not be retrieved.
+  }
+});
+    <% end %>
+
+    <%= anchor "collections-comparator" %>
+
+### Sorting Collections
+
+You can keep all the items in a collection in a sorted order by setting a `comparator`.
+
+    <%= code :javascript do %>
+var collection = new TestCollection();
+collection.comparator = function(object) {
+  return object.get("temperature");
+};
+    <% end %>
+
+    <%= anchor "collections-modifying" %>
+
+### Modifying a Collection
+
+Collections are mutable.  You can access all the items, and add or remove items.
+
+    <%= code :javascript do %>
+var collection = new TestCollection();
+
+collection.add([
+  {"name": "Duke"},
+  {"name": "Scarlett"}
+]);
+
+// Get the "Duke" Parse.Object by its sorted position.
+var model = collection.at(0);
+
+// Or you can get it by Parse objectId.
+var modelAgain = collection.get(model.id);
+
+// Remove "Duke" from the collection.
+collection.remove(model);
+
+// Completely replace all items in the collection.
+collection.reset([
+  {"name": "Hawk"},
+  {"name": "Jane"}
+]);
+    <% end %>
+
+## Views
+
+We've included `Parse.View` which is just a copy of `Backbone.View`. Feel free to use it for constructing views in your app. Take a look at the [Backbone.View API](http://documentcloud.github.com/backbone/#View) for details on how to use this class.  Note that once you use `Parse.View`, you will need to include jQuery or a jQuery compatible `$` method.
+
+  <%= anchor "convert", :major %>
+
+## Converting Backbone Apps
+
+If you already have an existing [Backbone](http://documentcloud.github.com/backbone/) application, it's easy to convert it to use our JavaScript SDK. After converting, you'll end up with a collection of static files that contain all your app's functionality.
+
+  <div class="callout_green">
+    Read our [Todo App with JavaScript tutorial](/tutorials/todo-app-with-javascript) where you will learn how to create the [canonical Backbone todo application](http://addyosmani.github.com/todomvc/) using Parse as the backend to persist user accounts and data.
+  </div>
+
+Our JavaScript SDK is Backbone compatible, which means that our `Parse.Object` and `Parse.Collection` can be dropped in for `Backbone.Model` and `Backbone.Collection` with minor tweaks. Here's how to convert your app:
+
+1.  [Follow the instructions for installing the SDK for an existing JavaScript app](/apps/quickstart#js/existing).
+2.  Replace all instances of `Backbone.Model` with `Parse.Object`. When doing so, `url` and `urlRoot` should be replaced with an appropriate `className` that maps your objects to a Parse class:
+
+        <%= code :javascript do %>
+var BackboneTodo = Backbone.Model.extend({
+  urlRoot: "/todos"
+});
+
+    var ParseTodo = Parse.Object.extend({
+  className: "Todo"
+});
+        <% end %>
+3.  Replace all instances of `Backbone.Collection` with `Parse.Collection` and specify the `Parse.Object` class as the `model`. You should also specify a `query` so that the collection knows how to fetch the objects:
+
+            <%= code :javascript do %>
+var ParseTodoCollection = Parse.Collection.extend({
+  model: ParseTodo
+});
+
+    var todos = new ParseTodoCollection();
+
+    // Construct a query to get the current user's todo items
+var query = new Parse.Query(ParseTodo);
+query.equalTo("user", Parse.User.current());
+todos.query = query;
+todos.fetch();
+        <% end %>
+4.  Anywhere you were constructing models from a server you'll need to construct a `Parse.Query` to grab the objects that you're interested in, similar to what we had to do for the `query` attribute on the `Parse.Collection`.
+
+5.  Add or update your app to use [user authentication](/docs/js_guide#users) and apply ACLs as necessary to objects.
+
+And that's it. Your app should be functional and using Parse as the backend.
