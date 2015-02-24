@@ -88,7 +88,7 @@ $ parse deploy
 
 To run this function once it's deployed, run:
 
-```java
+```common-java
 ParseCloud.callFunctionInBackground("hello", new HashMap<String, Object>(), new FunctionCallback<String>() {
   void done(String result, ParseException e) {
     if (e == null) {
@@ -97,8 +97,7 @@ ParseCloud.callFunctionInBackground("hello", new HashMap<String, Object>(), new 
   }
 });
 ```
-
-```objc
+```common-objc
 [PFCloud callFunctionInBackground:@"hello"
                    withParameters:@{}
                             block:^(NSString *result, NSError *error) {
@@ -107,21 +106,17 @@ ParseCloud.callFunctionInBackground("hello", new HashMap<String, Object>(), new 
    }
 }];
 ```
-
-```swift
+```common-swift
 // no swift example
 ```
-
-```php
+```common-php
 // no php example
 ```
-
-```csharp
+```common-csharp
 var result = await ParseCloud.CallFunctionAsync<IDictionary<string, object>>("hello", new Dictionary<string, object>());
 // result is "Hello world!"
 ```
-
-```js
+```common-js
 Parse.Cloud.run('hello', {}, {
   success: function(result) {
     // result is 'Hello world!'
