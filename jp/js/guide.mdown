@@ -1,0 +1,2105 @@
+# JavaScriptガイド
+
+プロジェクトをまだ設定していない場合は、[クイックスタートガイドに移動し、](/apps/quickstart#js/native/blank)起動して実行しましょう。SDKの詳細については、[APIリファレンス](/docs/js)もご覧ください。
+
+Parseプラットフォームはモバイルアプリケーション向けの完全なバックエンドソリューションを提供します。Parse は、サーバーコードの記述や、サーバーのメンテナンスを不要にすることを目標に設計されています。
+
+JavaScript SDKは、一般的に利用されている[Backbone.js](http://documentcloud.github.com/backbone/)フレームワークに基づきます。最小限の変更を加えるだけで、既存のBackboneアプリケーションとの互換性を持たせることができます。Parse は、設定を最小限に抑え、ParseでのJavaScriptとHTML5アプリの作成を簡単に始められることを目標に設計されています。
+
+ParseのSDKはFirefox 23以降、Chrome 17以降、Safari 5以降、IE 10をサポートしています。IE 8とIE 9はHTTPSでホストされるアプリでのみサポートされます。
+
+Parseでは、それぞれのモバイルアプリケーションのアプリを作成します。各アプリは、ウェブアプリに適用される固有のアプリケーションIDとJavaScriptクライアントキーを持ちます。Parseのアカウントは複数のアプリに対応します。テストと実稼働用にさまざまなバージョンを展開できるため、アプリケーションが1つしかない場合でも便利です。
+
+ParseのJavaScript SDKには外部ライブラリは必要ありません。唯一の例外が`Parse.View`クラスであり、jQueryかjQuery互換の`$`メソッドを使用する必要があります。
+
+# オブジェクト
+
+## Parse.Object
+
+Parseでのデータ保存は`Parse.Object`に基づいて設計されています。各`Parse.Object`にはJSON互換データのキーの値のペアが入ります。このデータはスキーマレスであり、各`Parse.Object`に存在するキーを事前に指定する必要がありません。必要なキーの値を設定するだけで、バックエンドによって保存されます。
+
+たとえば、ゲームの高得点をトラッキングするとします。`Parse.Object`には次のようなキーを入れることができます。
+
+```js 
+score: 1337, playerName: "Sean Plott", cheatMode: false
+```
+
+キーは英数字で指定します。値には、JSONエンコード可能なものであれば、文字列、数字、ブール値だけでなく配列や辞書も使用できます。
+
+各`Parse.Object`は、データの種類の区別に使用するクラス名を持った特定のサブクラスのインスタンスです。たとえば、高得点オブジェクトには`GameScore`という名前を付けることができます。コードを見やすくするために、NameYourClassesLikeThisやnameYourKeysLikeThisのような名前を付けることをお勧めします。
+
+新しいサブクラスを作成するには、`Parse.Object.extend`メソッドを使用します。`Parse.Query`では、同じクラス名を持った`Parse.Object`の新しいクラスのインスタンスが返されます。`Backbone.Model`を熟知していると、`Parse.Object`の使用方法も分かります。一時的な代用品として使用できます。
+
+```js
+// Simple syntax to create a new subclass of Parse.Object.
+var GameScore = Parse.Object.extend("GameScore");
+
+// Create a new instance of that class.
+var gameScore = new GameScore();
+
+// Alternatively, you can use the typical Backbone syntax.
+var Achievement = Parse.Object.extend({ className: "Achievement" });
+```
+
+`Parse.Object`のサブクラスにはメソッドとプロパティを追加できます。
+
+```js
+// A complex subclass of Parse.Object
+var Monster = Parse.Object.extend("Monster", {
+  // Instance methods
+  hasSuperHumanStrength: function () {
+    return this.get("strength") > 18;
+  },
+  // Instance properties go in an initialize method
+  initialize: function (attrs, options) {
+    this.sound = "Rawr"
+  }
+}, {
+  // Class methods
+  spawn: function(strength) {
+    var monster = new Monster();
+    monster.set("strength", strength);
+    return monster;
+  }
+});
+
+var monster = Monster.spawn(200);
+alert(monster.strength());  // Displays 200.
+alert(monster.sound); // Displays Rawr.
+```
+
+## オブジェクトの保存
+
+上記の`GameScore`をParseクラウドに保存するとします。`save`メソッドなど、インターフェイスは`Backbone.Model`に似ています。
+
+```js
+var GameScore = Parse.Object.extend("GameScore");
+var gameScore = new GameScore();
+
+gameScore.set("score", 1337); 
+gameScore.set("playerName", "Sean Plott");
+gameScore.set("cheatMode", false);
+gameScore.save(null, {
+  success: function(gameScore) {
+    // Execute any logic that should take place after the object is saved.
+    alert('New object created with objectId: ' + gameScore.id);
+  },
+  error: function(gameScore, error) {
+    // Execute any logic that should take place if the save fails.
+    // error is a Parse.Error with an error code and description.
+    alert('Failed to create new object, with error code: ' + error.description);
+  }
+});
+```
+
+このコードを実行しても、何が行われたのかよく分からないかもしれません。データが保存されたことを確認するには、Parseのアプリのデータブラウザを参照します。次のように表示されます。
+
+```js
+objectId: "xWMyZ4YEGZ", score: 1337, playerName: "Sean Plott", cheatMode: false, createdAt:"2011-06-10T18:33:42Z", updatedAt:"2011-06-10T18:33:42Z"
+```
+
+ここでは2つの点に注目します。このコードを実行する前には、`GameScore`と呼ばれる新しいクラスを作成したり、設定する必要はありません。コードがあった場合に、Parseアプリによってこのクラスが作成されます。
+
+また、指定しなくても、いくつかのフィールドは必要に応じて入力されます。`objectId`は保存した各オブジェクトの一意のIDです。`createdAt`と`updatedAt`はクラウドでの各オブジェクトの作成日時と、最終更新日時を表します。これらのフィールドはParseが入力することから、保存操作が完了するまで`Parse.Object`上には存在しません。
+
+必要な場合は、`save`への呼び出しに属性を直接設定できます。
+
+```js
+var GameScore = Parse.Object.extend("GameScore");
+var gameScore = new GameScore();
+gameScore.save({
+  score: 1337,
+  playerName: "Sean Plott",
+  cheatMode: false
+}, {
+  success: function(gameScore) {
+    // The object was saved successfully.
+  },
+  error: function(gameScore, error) {
+    // The save failed.
+    // error is a Parse.Error with an error code and description.
+  }
+});
+```
+
+## オブジェクトの取得
+
+クラウドへのデータの保存は便利ですが、そのデータを再度取得できればさらに便利です。`objectId`があると、`Parse.Query`を使用して`Parse.Object`全体を取得できます。
+
+```js
+var GameScore = Parse.Object.extend("GameScore");
+var query = new Parse.Query(GameScore);
+query.get("xWMyZ4YEGZ", {
+  success: function(gameScore) {
+    // The object was retrieved successfully.
+  },
+  error: function(object, error) {
+    // The object was not retrieved successfully.
+    // error is a Parse.Error with an error code and description.
+  }
+});
+```
+
+`Parse.Object`から値を取得するには、`get`メソッドを使用します。
+
+```js
+var score = gameScore.get("score");
+var playerName = gameScore.get("playerName");
+var cheatMode = gameScore.get("cheatMode");
+```
+
+次の3つの特殊な値をプロパティとして設定します。
+
+```js
+var objectId = gameScore.id;
+var updatedAt = gameScore.updatedAt;
+var createdAt = gameScore.createdAt;
+```
+
+すでに取得したオブジェクトをParseクラウド内の最新のデータで更新する場合は、次のように`fetch`メソッドを呼び出します。
+
+```js
+myObject.fetch({
+  success: function(myObject) 
+    // The object was refreshed successfully
+  },
+  error: function(myObject, error) {
+    // The object was not refreshed successfully.
+    // error is a Parse.Error with an error code and description.
+  }
+});
+```
+
+
+## オブジェクトの更新
+
+オブジェクトは簡単に更新できます。新しいデータをオブジェクトに設定し、保存メソッドを呼び出すだけです。次に例を示します。
+
+```js
+// Create the object.
+var GameScore = Parse.Object.extend("GameScore");
+var gameScore = new GameScore();
+gameScore.set("score", 1337);
+gameScore.set("playerName", "Sean Plott");
+gameScore.set("cheatMode", false);
+gameScore.set("skills", ["pwnage", "flying"]);
+gameScore.save(null, {
+  success: function(gameScore) {
+    // Now let's update it with some new data. In this case, only cheatMode and score
+    // will get sent to the cloud. playerName hasn't changed.
+    gameScore.set("cheatMode", true);
+    gameScore.set("score", 1338);
+    gameScore.save();
+  }
+});
+```
+
+Parseが変更されたデータを自動的に確認し、「ダーティ」なフィールドのみがParseクラウドに送信されます。更新する必要のない圧縮データは無視してもかまいません。
+
+### カウンタ
+
+上記の例には一般的な使用例が含まれます。「score」フィールドは、プレイヤーの最新スコアで継続的に更新する必要があるカウンタです。上記のメソッドも機能しますが、作業が面倒であり、複数のクライアントが同じカウンタを更新しようとすると問題が発生することになります。
+
+カウンタタイプのデータを簡単に保存できるよう、Parseには番号フィールドをアトミックに増やす、または減らすメソッドが用意されています。同じ更新処理は次のように記述できます。
+
+```js
+gameScore.increment("score");
+gameScore.save();
+```
+
+さらに、`increment`の2つ目の引数を渡せば、任意の増分量を設定できます。指定しない場合は、デフォルトで1が使用されます。
+
+### 配列
+
+配列データを簡単に保存できるよう、次の3つの操作を使用すると、指定したキーに関連付けられている配列をアトミックに変更できます。
+
+*   `add`は、指定したオブジェクトを配列フィールドの末尾に追加します。
+*   `addUnique`は、指定したオブジェクトが配列フィールドにない場合にのみ、そのオブジェクトを追加します。挿入場所は保証されません。
+*   `remove`は、配列フィールドから指定したオブジェクトのインスタンスをすべて削除します。
+
+たとえば、次のようにセットのような「skills」フィールドにアイテムを追加できます。
+
+```js
+gameScore.addUnique("skills", "flying");
+gameScore.addUnique("skills", "kungfu");
+gameScore.save();
+```
+
+現在は、同じ保存操作で配列にアイテムをアトミックに追加したり、配列からアイテムをアトミックに削除することはできません。異なる種類の各配列操作の間に`save`を呼び出す必要があります。
+
+
+## オブジェクトの削除
+
+クラウドからオブジェクトを削除するには:
+
+```js
+myObject.destroy({
+  success: function(myObject) {
+    // The object was deleted from the Parse Cloud.
+  },
+  error: function(myObject, error) {
+    // The delete failed.
+    // error is a Parse.Error with an error code and description.
+  }
+});
+```
+
+`unset`メソッドでは、オブジェクトから単一のフィールドを削除できます。
+
+```js
+// After this, the playerName field will be empty
+myObject.unset("playerName");
+// Saves the field deletion to the Parse Cloud
+myObject.save();
+```
+
+
+## リレーショナルデータ
+
+オブジェクトには他のオブジェクトとの関係を持たせることができます。たとえば、ブログアプリケーションでは、`Post`オブジェクトが多数の`Comment`オブジェクトを持つことがあります。Parseは、1対1、1対多、多対多など、すべての種類の関係をサポートしています。
+
+### 1対1の関係と1対多の関係
+
+1対1の関係と1対多の関係は、`Parse.Object`を他のオブジェクトの値として保存することでモデル化できます。たとえば、ブログアプリのそれぞれの`Comment`が1つの`Post`に対応することもあります。
+
+`Comment`を1つ持つ新しい`Post`を作成するには、次のように記述します。
+
+```js
+  // Declare the types.
+  var Post = Parse.Object.extend("Post");
+  var Comment = Parse.Object.extend("Comment");
+
+  // Create the post var myPost = new Post();
+  myPost.set("title", "I'm Hungry");
+  myPost.set("content", "Where should we go for lunch?");
+
+  // Create the comment var myComment = new Comment();
+  myComment.set("content", "Let's do Sushirrito.");
+
+  // Add the post as a value in the comment
+  myComment.set("parent", myPost);
+
+  // This will save both myPost and myComment
+  myComment.save();
+```
+
+内部的には、一貫性を保持するために、Parseフレームワークによって参照先オブジェクトが一か所に保存されます。また、次のように`objectId`を使用してオブジェクトをリンクさせることができます。
+
+```js
+var post = new Post();
+post.id = "1zEcyElZ80";
+myComment.set("parent", post);
+```
+
+デフォルトでは、オブジェクトを取得する際には、関連する`Parse.Object`は取得されません。次の方法で取得しない限り、これらのオブジェクトの値を取り出すことはできません。
+
+```js
+var post = fetchedComment.get("parent");
+post.fetch({
+  success: function(post) {
+    var title = post.get("title");
+  }
+});
+```
+
+### 多対多の関係
+
+多対多の関係は、`Parse.Relation`を使用してモデル化します。これは`Parse.Object`の配列をキーに格納するのと同じ方法ですが、関係のすべてのオブジェクトを一度に取得する必要がないという点が異なります。さらに、そのおかげで`Parse.Object`の配列による方法よりも、`Parse.Relation`の方がより多くのオブジェクトに対応できます。たとえば、`User`が「いいね！」した多数の`Posts`を持っているとします。この場合、`User`が「いいね！」した一連の`Posts`を、`relation`を使用して格納できます。`Post`を`User`の「いいね！」リストに追加するには、次のような方法があります。
+
+```js
+var user = Parse.User.current();
+var relation = user.relation("likes");
+relation.add(post);
+user.save();
+```
+
+次の方法では、`Parse.Relation`から投稿を削除できます。
+
+```js
+relation.remove(post);
+user.save();
+```
+
+保存を呼び出す前に、`add`と`remove`を複数回呼び出します。
+
+```js
+relation.remove(post1);
+relation.remove(post2);
+user.save();
+```
+
+また、`Parse.Object`の配列を`add`と`remove`に渡すことができます。
+
+```js
+relation.add([post1, post2, post3]);
+user.save();
+```
+
+デフォルトでは、この関係のオブジェクトのリストはダウンロードされません。利用者が「いいね！」した投稿のリストを取得するには、`query`が返す`Parse.Query`を使用します。コードは次のようになります。
+
+```js
+relation.query().find({
+  success: function(list) {
+    // list contains the posts that the current user likes.
+  }
+});
+```
+
+投稿のサブセットのみが必要な場合は、次のように、クエリが返す`Parse.Query`に条件を追加できます。
+
+```js
+var query = relation.query();
+query.equalTo("title", "I'm Hungry");
+query.find({
+  success:function(list) {
+    // list contains post liked by the current user which have the title "I'm Hungry".
+  }
+});
+```
+
+`Parse.Query`の詳細については、このガイドに記載のあるクエリに関する箇所をご覧ください。クエリ目的の場合、`Parse.Relation`は`Parse.Object`の配列と同様の働きをすることから、オブジェクトの配列に実行可能なクエリはすべて`Parse.Relation`に実行できます。
+
+
+## データタイプ
+
+ここまでは`String`、`Number`、`Parse.Object`といったタイプの値を使用してきました。ParseはJavaScript `Date`と`null`もサポートしています。
+
+JavaScript `Object`とJavaScript `Array`をネストすると、単一の`Parse.Object`内により多くの構造化データを格納できます。
+
+次のその例を示します。
+
+```js
+var number = 42;
+var string = "the number is " + number;
+var date = new Date();
+var array = [string, number];
+var object = { number: number, string: string };
+
+var BigObject = Parse.Object.extend("BigObject");
+var bigObject = new BigObject();
+bigObject.set("myNumber", number);
+bigObject.set("myString", string);
+bigObject.set("myDate", date);
+bigObject.set("myArray", array);
+bigObject.set("myObject", object);
+bigObject.set("myNull", null);
+bigObject.save();
+```
+
+`Parse.Object`のサイズは128キロバイト以下にする必要があります。
+
+Parseによるデータの処理方法についての詳細は、[データとセキュリティ](/docs/data)にあるドキュメントをご覧ください。
+
+
+# クエリ
+
+これまでに`Parse.Query`で`get`を使用して、Parseから単一の`Parse.Object`を取得する方法を確認しました。`Parse.Query`を使用したデータの取得には、一度に多数のオブジェクトを取得したり、取得するオブジェクトに条件を設定したりするなど、その他にも多数の方法があります。
+
+
+## 基本的なクエリ
+
+多くの場合、`get`には取得するオブジェクトを指定する機能はありません。`Parse.Query`には、単一のオブジェクトだけでなく、オブジェクトのリストを取得するさまざまな方法があります。
+
+`Parse.Query`を作成してそれに条件を設定し、その後`find`を使用して`Parse.Object`が一致する`Array`を取得するというのが一般的なパターンです。たとえば、特定の`playerName`を持つスコアを取得するには、`equalTo`メソッドを使用してキーの値を絞り込みます。
+
+```js
+var GameScore = Parse.Object.extend("GameScore");
+var query = new Parse.Query(GameScore);
+query.equalTo("playerName", "Dan Stemkoski");
+query.find({
+  success: function(results) {
+    alert("Successfully retrieved " + results.length + " scores.");
+    // Do something with the returned Parse.Object values
+    for (var i = 0; i < results.length; i++) {
+      var object = results[i];
+      alert(object.id + ' - ' + object.get('playerName'));
+    }
+  },
+  error: function(error) {
+    alert("Error: " + error.code + " " + error.message);
+  }
+});
+```
+
+
+## クエリ条件
+
+`Parse.Query`で検索するオブジェクトに条件を設定する方法がいくつかあります。`notEqualTo`を使用すると特定のキーと値のペアを持つオブジェクトをフィルタで除外できます。
+
+```js
+query.notEqualTo("playerName", "Michael Yabuti");
+```
+
+条件は複数設定でき、そのすべての条件に一致したオブジェクトのみが結果に表示されます。つまり、AND条件のように機能します。
+
+```js
+query.notEqualTo("playerName", "Michael Yabuti");
+query.greaterThan("playerAge", 18);
+```
+
+`limit`を設定すると結果の数を制限できます。デフォルトでは、結果は100件に制限されていますが、1～1000件の範囲で自由に制限を設定できます。
+
+```js
+query.limit(10); // limit to at most 10 results
+```
+
+結果を1件だけ表示したいときには、`find`の代わりに`first`を使用すると便利な場合があります。
+
+```js
+var GameScore = Parse.Object.extend("GameScore");
+var query = new Parse.Query(GameScore);
+query.equalTo("playerEmail", "dstemkoski@example.com");
+query.first({
+  success: function(object) {
+    // Successfully retrieved the object.
+  },
+  error: function(error) {
+    alert("Error: " + error.code + " " + error.message);
+  }
+});
+```
+
+`skip`を設定すると最初の結果をスキップできます。ページネーションに便利です。
+
+```js
+query.skip(10); // skip the first 10 results
+```
+
+数字や文字列のように並べ替え可能なタイプの場合は、返される結果の順番を制御できます。
+
+```js
+// Sorts the results in ascending order by the score field
+query.ascending("score");
+// Sorts the results in descending order by the score field
+query.descending("score");
+```
+
+並べ替え可能なタイプの場合、クエリ内で比較も使用できます。
+
+```js
+// Restricts to wins < 50
+query.lessThan("wins", 50);
+
+// Restricts to wins <= 50
+query.lessThanOrEqualTo("wins", 50);
+
+// Restricts to wins > 50
+query.greaterThan("wins", 50);
+
+// Restricts to wins >= 50
+query.greaterThanOrEqualTo("wins", 50);
+```
+
+複数の異なる値に一致するオブジェクトを取得する場合は、`containedIn`を使用して許容される値の配列を指定します。通常は、複数のクエリを1つのクエリで置き換えるときに便利です。たとえば、特定のリストにあるプレイヤーがあげたスコアを取得する場合は、次のように設定します。
+
+```js
+// Finds scores from any of Jonathan, Dario, or Shawn
+query.containedIn("playerName",
+                  ["Jonathan Walsh", "Dario Wunsch", "Shawn Simon"]);
+```
+
+複数の値のいずれかに一致しないオブジェクトを取得する場合は、`notContainedIn`を使用して許容される値の配列を指定します。たとえば、リストにあるプレイヤー以外のプレイヤーがあげたスコアを取得する場合は、次のように設定します。
+
+```js
+// Finds scores from anyone who is neither Jonathan, Dario, nor Shawn
+query.notContainedIn("playerName",
+                     ["Jonathan Walsh", "Dario Wunsch", "Shawn Simon"]);
+```
+
+特定のキーセットを持つオブジェクトを取得するには、`exists`を使用します。反対に、特定のキーセットを持たないオブジェクトを取得する場合は、`doesNotExist`を使用します。
+
+```js
+// Finds objects that have the score set
+query.exists("score");
+
+// Finds objects that don't have the score set
+query.doesNotExist("score");
+```
+
+`matchesKeyInQuery`メソッドでは、別のクエリで取得した一連のオブジェクトが持つキーの値に一致するキーを持つオブジェクトを取得できます。たとえば、スポーツチームを持つクラスがあり、利用者のクラスに利用者の出身地を格納してある場合、クエリを1つ発行するだけで、出身地のチームが勝ち越している利用者のリストを取得できます。クエリは次のようになります。
+
+```js
+var Team = Parse.Object.extend("Team");
+var teamQuery = new Parse.Query(Team);
+teamQuery.greaterThan("winPct", 0.5);
+var userQuery = new Parse.Query(Parse.User);
+userQuery.matchesKeyInQuery("hometown", "city", teamQuery);
+userQuery.find({
+  success: function(results) {
+    // results has the list of users with a hometown team with a winning record
+  }
+});
+```
+
+逆に、別のクエリで取得した一連のオブジェクトが持つキーの値に一致しないオブジェクトを取得するには、`doesNotMatchKeyInQuery`を使用します。たとえば、出身地のチームが負け越している利用者を取得するには、次のように設定します。
+
+```js
+var losingUserQuery = new Parse.Query(Parse.User);
+losingUserQuery.doesNotMatchKeyInQuery("hometown", "city", teamQuery);
+losingUserQuery.find({
+  success: function(results) {
+    // results has the list of users with a hometown team with a losing record
+  }
+});
+```
+
+キーのリストと共に`select`を呼び出すことで、返されるフィールドを制限できます。`score`フィールドと`playerName`フィールドのみ（さらには特別に組み込まれたフィールド`objectId`、`createdAt`、`updatedAt`）を持つドキュメントを取得するには、次のように設定します。
+
+```js
+var GameScore = Parse.Object.extend("GameScore");
+var query = new Parse.Query(GameScore);
+query.select("score", "playerName");
+query.find().then(function(results) {
+  // each of results will only have the selected fields available.
+});
+```
+
+返されたオブジェクトに`fetch`を呼び出すと、残りのフィールドを後から取得できます。
+
+```js
+query.first().then(function(result) {
+  // only the selected fields of the object will now be available here.
+  return result.fetch();
+}).then(function(result) {
+  // all fields of the object will now be available here.
+});
+```
+
+
+## 配列の値についてのクエリ
+
+配列タイプのキーの場合、キーの配列の値に2が入っているオブジェクトを取得するには、次のようにします。
+
+```js
+// Find objects where the array in arrayKey contains 2.
+query.equalTo("arrayKey", 2);
+```
+
+また、キーの配列の値に要素2、3、4がすべて入っているオブジェクトを取得するには、次のようにします。
+
+```js
+// Find objects where the array in arrayKey contains all of the elements 2, 3, and 4.
+query.containsAll("arrayKey", [2, 3, 4]);
+```
+
+
+## 文字列の値についてのクエリ
+
+特定の文字列で始まる文字列の値のみを取得するには、`startsWith`を使用します。MySQL LIKE演算子と同じようにインデックス化されることから、大規模なデータセットに効果的です。
+
+```js
+// Finds barbecue sauces that start with "Big Daddy's".
+var query = new Parse.Query(BarbecueSauce);
+query.startsWith("name", "Big Daddy's");
+```
+
+
+## リレーショナルクエリ
+
+リレーショナルデータにはいくつかの方法でクエリを発行できます。特定の`Parse.Object`に一致するフィールドを持つオブジェクトを取得する場合は、他のデータタイプと同じように`equalTo`を使用できます。たとえば、各`Comment`が`post`フィールドに`Post`オブジェクトを持つ場合、特定の`Post`のコメントを取得できます。
+
+```js
+// Assume Parse.Object myPost was previously created.
+var query = new Parse.Query(Comment);
+query.equalTo("post", myPost);
+query.find({
+  success: function(comments) {
+    // comments now contains the comments for myPost
+  }
+});
+```
+
+別のクエリに一致する`Parse.Object`をフィールドに持つオブジェクトを取得する場合は、`matchesQuery`を使用します。デフォルトの制限100と最大制限1000が内部クエリにも適用されることから、大規模なデータセットの場合は、目的の動作が得られるまで慎重にクエリを作成する必要があります。画像のある投稿のコメントを取得するには、次のようにします。
+
+```js
+var Post = Parse.Object.extend("Post");
+var Comment = Parse.Object.extend("Comment");
+var innerQuery = new Parse.Query(Post);
+innerQuery.exists("image");
+var query = new Parse.Query(Comment);
+query.matchesQuery("post", innerQuery);
+query.find({
+  success: function(comments) {
+    // comments now contains the comments for posts with images.
+  }
+});
+```
+
+別のクエリに一致しない`Parse.Object`をフィールドに持つオブジェクトを取得する場合は、`doesNotMatchQuery`を使用します。画像のない投稿のコメントを取得するには、次のようにします。
+
+```js
+var Post = Parse.Object.extend("Post");
+var Comment = Parse.Object.extend("Comment");
+var innerQuery = new Parse.Query(Post);
+innerQuery.exists("image");
+var query = new Parse.Query(Comment);
+query.doesNotMatchQuery("post", innerQuery);
+query.find({
+  success: function(comments) {
+    // comments now contains the comments for posts without images.
+  }
+});
+```
+
+次のように、`objectId`によってリレーショナルクエリを実行することもできます。
+
+```js
+var post = new Post();
+post.id = "1zEcyElZ80";
+query.equalTo("post", post);
+```
+
+状況によっては、1つのクエリで複数タイプの関連するオブジェクトを返したい場合があります。その場合は`include`メソッドを使用します。たとえば、最新10件のコメントを取得し、その関連する投稿を同時に取得する場合は、次のようにします。
+
+```js
+var query = new Parse.Query(Comment);
+
+// Retrieve the most recent ones
+query.descending("createdAt");
+
+// Only retrieve the last ten 
+query.limit(10);
+
+// Include the post data with each comment
+query.include("post");
+
+query.find({
+  success: function(comments) {
+    // Comments now contains the last ten comments, and the "post" field
+    // has been populated. For example
+    for (var i = 0; i < comments.length; i++) 
+      // This does not require a network access.
+      var post = comments[i].get("post");
+    }
+  }
+});
+```
+
+また、ドット表記を使用すると複数レベルを指定できます。コメントの投稿と投稿の作成者も指定したい場合は、次のようにします。
+
+```js
+query.include(["post.author"]);
+```
+
+`include`を複数回呼び出すことで、複数のフィールドを持つクエリを発行できます。この機能は、`first`や`get`といったParse.Queryヘルパーでも使用できます。
+
+
+## オブジェクトのカウント
+
+クエリに一致するオブジェクトの数をカウントするが、一致するすべてのオブジェクトを取得する必要がない場合は、`find`の代わりに`count`を使用します。たとえば、特定のプレイヤーがプレイしたゲームの回数をカウントするには、次のように設定します。
+
+```js
+var GameScore = Parse.Object.extend("GameScore");
+var query = new Parse.Query(GameScore);
+query.equalTo("playerName", "Sean Plott");
+query.count({
+  success: function(count) {
+    // The count request succeeded. Show the count
+    alert("Sean has played " + count + " games");
+  },
+  error: function(error) {
+    // The request failed
+  }
+});
+```
+
+1000を超えるオブジェクトを持つクラスの場合、タイムアウトによってカウント操作が制限されます。常にタイムアウトエラーが発生したり、おおよその結果のみが返されたりすることがあります。従って、こういったカウント操作が発生しないようにアプリケーションを構築することをお勧めします。
+
+
+## 複合クエリ
+
+複数のクエリのいずれかに一致するオブジェクトを検出する場合は、渡されたクエリをORでつなげる`Parse.Query.or`メソッドを使用できます。たとえば、優勝回数が多いまたは少ないプレイヤーを検出する場合は、次のように設定します。
+
+```js
+var lotsOfWins = new Parse.Query("Player");
+lotsOfWins.greaterThan("wins", 150);
+
+var fewWins = new Parse.Query("Player");
+fewWins.lessThan("wins", 5);
+
+var mainQuery = Parse.Query.or(lotsOfWins, fewWins);
+mainQuery.find({
+  success: function(results) {
+    // results contains a list of players that either have won a lot of games or won only a few games.
+  },
+  error: function(error) {
+    // There was an error.
+  }
+});
+```
+
+「AND」演算子として機能する新たに作成した`Parse.Query`に条件を追加できます。
+
+ただし、複合クエリのサブクエリ内ではフィルタ以外の条件（`limit`、`skip`、`ascending`/`descending`、`include`など）はサポートされません。
+
+
+# Promise
+
+コールバック以外にも、Parse JavaScript SDKのそれぞれの非同期メソッドは`Promise`を返します。Promiseでは、コールバックで取得するネストされたコードよりも、はるかに見やすいコードになります。
+
+
+## `then`メソッド
+
+&ensp; &ensp; 
+
+それぞれの`Promise`には、コールバックのペアを取得する`then`という名前のメソッドがあります。Promiseが解決済みの場合は最初のコールバックが呼び出され、Promiseが却下の場合は2つ目のコールバックが呼び出されます。
+
+```js
+obj.save().then(function(obj) {
+  // the object was saved successfully.
+},
+function(error) {
+  // the save failed.
+});
+```
+
+
+## Promiseのチェーン
+
+Promiseはネストせずにチェーンすることができます。Promiseのコールバックが新しいPromiseを返した場合、2つ目のPromiseが解決されるまで最初のPromiseは解決されません。これにより、コールバックで取得するネストされたコードを使用しなくても、複数のアクションを実行できます。
+
+```js
+var query = new Parse.Query("Student");
+query.descending("gpa");
+query.find().then(function(students) {
+  students[0].set("valedictorian", true);
+  return students[0].save();
+}).then(function(valedictorian) {
+  return query.find();
+}).then(function(students) {
+  students[1].set("salutatorian", true);
+  return students[1].save();
+}).then(function(salutatorian) {
+  // Everything is done!
+});
+```
+
+
+## エラー処理
+
+チェーン内のPromiseがエラーを返した場合、エラーコールバックが発生するまで、そのPromise以降に成功したコールバックがすべてスキップされます。エラーコールバックがそのエラーを変換することもできますし、却下されない新しいPromiseを返すことでそのエラーを処理することもできます。却下されたPromiseは例外のスローのようなものとして考えることができます。エラーコールバックは、エラーを処理したり再スローしたりできるcatchブロックのようなものです。
+
+```js
+var query = new Parse.Query("Student");
+query.descending("gpa");
+query.find().then(function(students) {
+  students[0].set("valedictorian", true);
+  // Force this callback to fail.
+  return Parse.Promise.error("There was an error.");
+}).then(function(valedictorian) {
+  // Now this will be skipped.
+  return query.find();
+}).then(function(students) {
+  // This will also be skipped.
+  students[1].set("salutatorian", true);
+  return students[1].save();
+}, function(error) {
+  // This error handler WILL be called. error will be "There was an error.".
+  // Let's handle the error by returning a new promise.
+  return Parse.Promise.as("Hello!");
+}).then(function(hello) {
+  // Everything is done!
+}, function(error) {
+  // This isn't called because the error was already handled.
+});
+```
+
+通常、成功したコールバックの長いチェーンの最後にエラーハンドラを1つ付けておくと便利です。
+
+
+## Promiseの作成
+
+最初は、`find`や`save`といったメソッドが返すPromiseを使用します。ただし、より高度なシナリオでは、独自のPromiseの作成が必要になることがあります。`Promise`を作成したら、`resolve`か`reject`を呼び出してコールバックをトリガーする必要があります。
+
+```js
+var successful = new Parse.Promise();
+successful.resolve("The good result.");
+
+var failed = new Parse.Promise();
+failed.reject("An error message.");
+```
+
+作成時にPromiseの結果が分かる場合は、便利なメソッドを使用できます。
+
+```js
+var successful = Parse.Promise.as("The good result.");
+var failed = Parse.Promise.error("An error message.");
+```
+
+
+## 連続するPromise
+
+前のタスクが完了してから次のタスクが実行されるため、一連のタスクを連続して実行したい場合は、Promiseを使用すると便利です。たとえば、ブログのコメントをすべて削除するような場合に使用します。
+
+```js
+var query = new Parse.Query("Comments");
+query.equalTo("post", 123);
+
+query.find().then(function(results) {
+  // Create a trivial resolved promise as a base case.
+  var promise = Parse.Promise.as();
+  _.each(results, function(result) {
+    // For each item, extend the promise with a function to delete it.
+    promise = promise.then(function() {
+      // Return a promise that will be resolved when the delete is finished.
+      return result.destroy();
+    });
+  });
+  return promise;
+}).then(function() {
+  // Every comment was deleted.
+});
+```
+
+
+## 並行するPromise
+
+Promiseでは、`when`メソッドを使用して、複数のタスクを並行して実行することもできます。複数の操作を一度に開始し、`Parse.Promise.when`を使用して、すべての入力Promiseが解決されたときに解決される新しいPromiseを作成できます。渡されたPromiseに失敗がない場合は、新しいPromiseが成功し、失敗があった場合は、新しいPromiseが失敗し最後にエラーが発生します。並行して操作を実行すると連続して実行するよりも短時間で処理できますが、システムリソースや帯域幅をより多く使用する場合があります。
+
+```js
+var query = new Parse.Query("Comments");
+query.equalTo("post", 123);
+
+query.find().then(function(results) {
+  // Collect one promise for each delete into an array.
+  var promises = [];
+  _.each(results, function(result) {
+    // Start this delete immediately and add its promise to the list.
+    promises.push(result.destroy());
+  });
+  // Return a new promise that is resolved when all of the deletes are finished.
+  return Parse.Promise.when(promises);
+}).then(function() {
+  // Every comment was deleted.
+});
+```
+
+
+## 非同期メソッドの作成
+
+このツールでは、Promiseを返す独自の非同期関数を簡単に作成できます。たとえば、`setTimeout`のPromiseバージョンを作成できます。
+
+```js
+var delay = function(millis) {
+  var promise = new Parse.Promise();
+  setTimeout(function() {
+    promise.resolve();
+  }, millis);
+  return promise;
+};
+delay(100).then(function() {
+  // This ran after 100ms!
+});
+```
+
+
+# コレクション
+
+
+`Parse.Collection`は一連の`Parse.Object`を順番に並べたものです。`[Backbone.Collection](http://documentcloud.github.com/backbone/#Collection)`との互換性があり、完全に同じ機能を持ちます。モデルクラスか特定の`Parse.Query`のいずれかを使用して新しいサブクラスを作成できます。
+
+```js
+// A Collection containing all instances of TestObject.
+var TestCollection = Parse.Collection.extend({
+  model: TestObject
+});
+var collection = new TestCollection();
+
+// A Collection of TestObjects whose temperature is "hot".
+var HotCollection = Parse.Collection.extend({
+  model: TestObject,
+  query: (new Parse.Query(TestObject)).equalTo("temperature", "hot")
+});
+var collection = new HotCollection();
+
+// The Collection of TestObjects that match a complex query.
+var query = new Parse.Query(TestObject);
+query.equalTo("temperature", "hot");
+query.greaterThan("degreesF", 100);
+var collection = query.collection();
+```
+
+
+## コレクションの取得
+
+コレクション内のすべてのアイテムを読み込むには、`fetch`メソッドを使用します。
+
+```js
+var collection = new TestCollection();
+collection.fetch({
+  success: function(collection) {
+    collection.each(function(object) {
+      console.warn(object);
+    });
+  },
+  error: function(collection, error) {
+    // The collection could not be retrieved.
+  }
+});
+```
+
+
+## コレクションの並べ替え
+
+コレクション内のすべてのアイテムを`comparator`で設定した順番で並べ替えておくことができます。
+
+```js
+var collection = new TestCollection();
+collection.comparator = function(object) {
+  return object.get("temperature");
+};
+```
+
+
+## コレクションの修正
+
+コレクションは変更可能です。すべてのアイテムにアクセスできますし、アイテムの追加や削除も可能です。
+
+```js
+var collection = new TestCollection();
+collection.add([
+  {"name": "Duke"},
+  {"name": "Scarlett"}
+]);
+// Get the "Duke" Parse.Object by its sorted position.
+var model = collection.at(0);
+// Or you can get it by Parse objectId.
+var modelAgain = collection.get(model.id);
+// Remove "Duke" from the collection.
+collection.remove(model);
+// Completely replace all items in the collection.
+collection.reset([
+  {"name": "Hawk"},
+  {"name": "Jane"}
+]);
+```
+
+# ファイル
+
+## Parse.Fileの作成
+
+`Parse.File`を使用すると、通常の`Parse.Object`に入れるには大きすぎるか、作業が煩雑すぎるアプリケーションファイルをクラウドに保存できます。最も一般的な使用例は画像の保存ですが、文書、動画、音楽、その他のバイナリデータ（最大10メガバイト）にも使用できます。
+
+`Parse.File`は簡単に使用できます。ファイル作成にはいくつかの方法がありますが、まずは、base64エンコードされた文字列を使用します。
+
+```js
+var base64 = "V29ya2luZyBhdCBQYXJzZSBpcyBncmVhdCE=";
+var file = new Parse.File("myfile.txt", { base64: base64 });
+```
+
+また、バイト値の配列からもファイルを作成できます。
+
+```js
+var bytes = [ 0xBE, 0xEF, 0xCA, 0xFE ];
+var file = new Parse.File("myfile.txt", bytes);
+```
+
+Parseはアップロード中のファイルのタイプを、そのファイル拡張子に基づいて自動検出しますが、3つ目のパラメータで`Content-Type`を指定できます。
+
+```js
+var file = new Parse.File("myfile.zzz", fileData, "image/png");
+```
+
+ただし、ほとんどがHTML5アプリの場合ですが、ファイルアップロード制御が可能なHTMLフォームの使用が必要になることがあります。新しいブラウザでは簡単に設定できます。ファイル入力タグを作成すると、利用者がローカルドライブからファイルを選択してアップロードできます。
+
+```html
+  <input type="file" id="profilePhotoFileUpload">
+```
+
+次に、クリックハンドラかその他の関数で、そのファイルへの参照を取得します。
+
+```js
+var fileUploadControl = $("#profilePhotoFileUpload")[0];
+if (fileUploadControl.files.length > 0) {
+  var file = fileUploadControl.files[0];
+  var name = "photo.jpg";
+  var parseFile = new Parse.File(name, file);
+}
+```
+
+この例では、ファイル名を`photo.jpg`としています。ここでは2つの点に注目します。 
+
+*   ファイル名の競合を考慮する必要はありません。それぞれのアップロードには一意のIDが設定されるため、`photo.jpg`という名前のファイルを複数アップロードしても問題ありません。
+*   ファイルにはファイル拡張子の付いた名前を指定するようにします。そうすることで、Parseでファイルの種類が識別され、適切に処理されます。たとえば、PNG画像を保存する場合は、ファイル名の末尾に必ず`.png`を付けます。
+
+次に、ファイルをクラウドに保存します。`Parse.Object`と同じように、自分に都合のよいフォールバックの種類やエラー処理に合わせて、さまざまな`save`メソッドを使用できます。
+
+```js
+parseFile.save().then(function() {
+  // The file has been saved to Parse.
+}, function(error) {
+  // The file either could not be read, or could not be saved to Parse.
+});
+```
+
+最後に、保存が完了したら、データの他の部分と同じように`Parse.File`を`Parse.Object`に関連付けます。
+
+```js
+var jobApplication = new Parse.Object("JobApplication");
+jobApplication.set("applicantName", "Joe Smith");
+jobApplication.set("applicantResumeFile", parseFile);
+jobApplication.save();
+```
+
+## ファイルコンテンツの取得
+
+ファイルコンテンツの最適な取得方法はアプリケーションのコンテキストによって異なります。クロスドメインリクエストの問題により、ブラウザから取得することをお勧めします。通常は、ファイルのURLをDOMにレンダリングすることになります。ここでは、ページにアップロードしたプロフィール写真をjQueryでレンダリングします。
+
+```js
+var profilePhoto = profile.get("photoFile");
+$("profileImg")[0].src = profilePhoto.url();
+```
+
+ファイルのデータをCloud Codeで処理する場合は、ParseのHTTPネットワークライブラリを使用してファイルを取得できます。
+
+```js
+Parse.Cloud.httpRequest({ url: profilePhoto.url() }).then(function(response) {
+  // The file contents are in response.buffer.
+});
+```
+
+[REST API](/docs/rest#files-deleting)では、オブジェクトの参照先ファイルを削除できます。ファイルの削除を許可するには、マスターキーを入力する必要があります。
+
+アプリ内のオブジェクトがファイルを参照していない場合は、REST APIを使用してファイルを削除できません。アプリの設定ページで、未使用ファイルのクリーンアップをリクエストすることもできます。ファイルのクリーンアップを実行すると、URLプロパティを通じて未参照ファイルへのアクセスに依存する機能が壊れる場合があるのでご注意ください。現在オブジェクトに関連付けられているファイルは影響を受けません。
+
+
+# 分析
+
+Parseには、アプリの稼働状況を簡単に確認できるフックが多数用意されています。アプリの機能、使用頻度、使用時間を把握の重要性も認識されています。
+
+このセクションではParseの分析バックエンドを十分に活用するためのアプリの設定方法をいくつか紹介しますが、Parseを使用してデータを保存、取得するだけでも、開発者はすでにParseの指標を活用していることになります。
+
+クライアント側のロジックを実装しなくても、アプリのダッシュボードでAPIリクエストのリアルタイムのグラフや詳細情報（機器の種類、Parseクラス名、REST動詞ごと）を表示したり、必要なデータに簡単にアクセスできるようにグラフフィルタを保存しておくことができます。
+
+
+## カスタム分析
+
+`Parse.Analytics`では、いくつかの`string`キーと値を使用して自由形式のイベントをトラッキングできます。このようにしてトラッキング対象を追加することで、アプリのダッシュボードからカスタムイベントをセグメント化できます。
+
+たとえば、アパートの出品広告を検索するアプリにメタデータを追加することで、機能の使用回数をトラッキングします。
+
+```js
+var dimensions = {
+  // Define ranges to bucket data points into meaningful segments
+  priceRange: '1000-1500',
+  // Did the user filter the query?
+  source: 'craigslist',
+  // Do searches happen more often on weekdays or weekends?
+  dayType: 'weekday'
+};
+// Send the dimensions to Parse along with the 'search' event
+Parse.Analytics.track('search', dimensions);
+```
+
+`Parse.Analytics`は軽量のエラートラッキングツールとしても使用でき、次のコードを呼び出すだけで、アプリのエラー率や頻度の概要、エラーコードごとの詳細を確認できます。
+
+```js
+var codeString = '' + error.code;
+Parse.Analytics.track('error', { code: codeString });
+```
+
+現在、Parseは`Parse.Analytics.track()`への呼び出しごとに最初の8つのトラッキング対象のペアしか保存できません。
+
+# User
+
+利用者が安全に情報にアクセスできるように、ユーザーアカウントをどのように考えるかが、多くのアプリのテーマとなっています。Parseでは`Parse.User`と呼ばれる特別のユーザークラスを提供していますが、このクラスはユーザーアカウントの管理に必要な機能の大部分を自動的に処理します。
+
+このクラスでは、ユーザーアカウントの機能をアプリに追加できます。
+
+`Parse.User`は`Parse.Object`のサブクラスであり、柔軟なスキーマ、自動継続、主要な値に関するインターフェイスなど、同じ機能をすべて使用できます。`Parse.Object`に関するメソッドはすべて`Parse.User`でも使用できます。Parse.Userにはユーザーアカウントに固有の特別な追加事項がある点が異なります。
+
+
+## プロパティ
+
+`Parse.User`には、`Parse.Object`にはない値をいくつか設定できます。
+
+*   username: 利用者のユーザーネームです（必須）。
+*   password: 利用者のパスワードです（必須）。
+*   email: 利用者のメールアドレスです（省略可）。
+
+これらの値については、さまざまな使用例を通じて詳しく見ていきます。
+
+
+## 登録
+
+アプリが最初に行うのは、おそらく利用者への登録リクエストでしょう。次のコードは、一般的な登録方法を表しています。
+
+```js
+var user = new Parse.User();
+user.set("username", "my name");
+user.set("password", "my pass");
+user.set("email", "email@example.com");
+
+// other fields can be set just like with Parse.Object
+user.set("phone", "415-392-0202");
+user.signUp(null, {
+  success: function(user) {
+    // Hooray! Let them use the app now.
+  },
+  error: function(user, error) {
+    // Show the error message somewhere and let the user try again.
+    alert("Error: " + error.code + " " + error.message);
+  }
+});
+```
+
+この呼び出しは、Parseアプリ内に新しい利用者を非同期に作成します。作成前には、ユーザーネームとメールの両方が一意であることが確認されます。さらに、パスワードはクラウドに安全にハッシュされます。パスワードはプレーンテキストで保存されることはありません。また、クライアントにパスワードがプレーンテキストで返されることはありません。
+
+Parseは`save`メソッドではなく、`signUp`メソッドを使用します。新しい`Parse.User`は常に`signUp`メソッドを使用して作成する必要があります。その後の更新プログラムがある場合は`save`を呼び出して実行します。
+
+正常に登録できない場合は、返されるエラーオブジェクトを確認する必要があります。多くの場合、別の利用者がユーザーネームかメールをすでに取得しているのが原因です。その場合は利用者に分かりやすい通知を送信し、別のユーザーネームを試すよう依頼する必要があります。
+
+ユーザーネームにはメールアドレスを使用できます。利用者にはメールを入力するよう依頼するだけですが、そのメールアドレスはユーザーネームプロパティにも入力します。そうすることで`Parse.User`は通常通り動作します。この処理方法についてはパスワードの再設定のセクションで後述します。
+
+
+## ログイン
+
+利用者の登録が終わったら、次はアカウントにログインできるよう設定する必要があります。それにはクラスメソッドの`logIn`を使用します。
+
+```js
+Parse.User.logIn("myname", "mypass", {
+  success: function(user) {
+    // Do stuff after successful login.
+  },
+  error: function(user, error) {
+    // The login failed. Check error to see why.
+  }
+});
+```
+
+
+## メールの認証
+
+アプリケーションの設定でメール認証を有効にすると、認証操作の一部を承認済みのメールアドレスを使用して行うことができます。メール認証では`emailVerified`キーが`Parse.User`オブジェクトに追加されます。`Parse.User`の`email`が設定または修正された場合、`emailVerified`が`false`に設定されます。その後Parseは`emailVerified`が`true`に設定されたリンクをメールで利用者に送信します。
+
+次の3つの`emailVerified`の状態を考慮する必要があります。
+
+1.  `true` - 利用者がParseからメールで送信されたリンクをクリックしてメールアドレスを承認した状態。ユーザーアカウントを初めて作成する場合は、`Parse.Users`が`true`の値を持つことはありません。
+2.  `false` - `Parse.User`オブジェクトが最後に更新されたときに、利用者がメールアドレスの承認を行わなかった状態。`emailVerified`が`false`の場合は、`Parse.User`で`fetch`を呼び出してみます。
+3.  _missing_ - メール認証が無効な場合に`Parse.User`が作成された、または`Parse.User`に`email`がない状態。
+
+
+## 現在の利用者
+
+アプリを開くたびにログインが必要になると、操作がわずらわしく感じられます。キャッシュに保存された現在の`Parse.User`オブジェクトを使用すると、このような状況を避けることができます。
+
+登録やログインメソッドを使用するときは、利用者がlocalStorageのキャッシュに常に保存されます。このキャッシュはセッションとして処理でき、ログインしている利用者を自動的に推定できます。
+
+```js
+var currentUser = Parse.User.current();
+if (currentUser) {
+  // do stuff with the user
+} else {
+  // show the signup or login page
+}
+```
+
+利用者をログアウトすると、現在の利用者を消去できます。
+
+```js
+Parse.User.logOut();
+var currentUser = Parse.User.current(); // this will now be null
+```
+
+
+## 現在の利用者の設定
+
+独自の認証ルールを作成している、または利用者がサーバー側でログインする場合に、セッショントークンをクライアントに渡して`become`メソッドを使用できるようになりました。このメソッドでは、現在の利用者を設定する前にセッショントークンが有効なことを確認できます。
+
+```js
+Parse.User.become("session-token-here").then(function (user) 
+  // The current user is now set to user.
+}, function (error) {
+  // The token could not be validated.
+});
+```
+
+
+## Userオブジェクトのセキュリティ
+
+`Parse.User`クラスはデフォルトで保護されています。`Parse.User`に格納されているデータは該当する利用者のみが修正できます。デフォルトでは、すべての利用者がデータを読み取ることができます。そのため、一部の`Parse.User`オブジェクトは認証され修正できますが、その他のオブジェクトは読み取り専用となります。
+
+具体的には、`logIn`や`signUp`などの認証済みメソッドを使用して`Parse.User`を取得していない場合は、`save`メソッドや`delete`メソッドを呼び出すことはできません。これにより、利用者は自分が所有するデータのみを変更できます。
+
+次は、このセキュリティポリシーを説明しています。
+
+```js
+var user = Parse.User.logIn("my_username", "my_password", {
+  success: function(user) {
+    user.set("username", "my_new_username");  // attempt to change username
+    user.save(null, {
+      success: function(user) {
+        // This succeeds, since the user was authenticated on the device
+        // Get the user from a non-authenticated method
+        var query = new Parse.Query(Parse.User);
+        query.get(user.objectId, {
+          success: function(userAgain) {
+            userAgain.set("username", "another_username");
+            userAgain.save(null, {
+              error: function(userAgain, error) {
+                // This will error, since the Parse.User is not authenticated
+              }
+            });
+          }
+        });
+      }
+    });
+  }
+});
+```
+
+`Parse.User.current()`から取得した`Parse.User`は常に認証済みとなります。
+
+`Parse.User`が認証済みか確認するには、`authenticated`メソッドを呼び出します。認証済みのメソッドから取得した`Parse.User`オブジェクトを持つ`authenticated`は確認する必要がありません。
+
+
+## その他のオブジェクトのセキュリティ
+
+`Parse.User`に適用するセキュリティモデルと同じモデルを他のオブジェクトにも適用できます。すべてのオブジェクトで、オブジェクトの読み取りを許可する利用者や、オブジェクトの修正を許可する利用者を指定できます。このタイプのセキュリティをサポートするには、各オブジェクトに`Parse.ACL`クラスで実装する[アクセス制御リスト](http://en.wikipedia.org/wiki/Access_control_list)が必要です。
+
+`Parse.ACL`を使用する最も簡単な方法は、オブジェクトの読み取り/書き込みを1人の利用者に限定する方法です。そのようなオブジェクトを作成するには、最初に`Parse.User`へのログインが必要です。その後、`new Parse.ACL(user)`がアクセス権を該当する利用者に制限する`Parse.ACL`を生成します。オブジェクトのACLは、他のプロパティと同様に、オブジェクトの保存時に更新されます。従って、現在の利用者のみがアクセスできるプライベートノートを作成するには、次のようにします。
+
+```js
+var Note = Parse.Object.extend("Note");
+var privateNote = new Note();
+privateNote.set("content", "This note is private!");
+privateNote.setACL(new Parse.ACL(Parse.User.current()));
+privateNote.save();
+```
+
+このノートは現在の利用者のみがアクセスできるようになりますが、この利用者がログインしているすべての端末からアクセスできます。この機能は、個人のToDoリストのように、複数の端末からユーザーデータにアクセスできるようなアプリケーションの場合に便利です。
+
+また、権限は利用者ごとに付与できます。`setReadAccess`と`setWriteAccess`では、`Parse.ACL`に個別に権限を追加できます。たとえば、メッセージの読み込みと削除権限を持つ複数の利用者のグループにメッセージを送信する場合は、次のようにします。
+
+```js
+var Message = Parse.Object.extend("Message");
+var groupMessage = new Message();
+var groupACL = new Parse.ACL();
+
+// userList is an array with the users we are sending this message to.
+for (var i = 0; i < userList.length; i++) {
+  groupACL.setReadAccess(userList[i], true);
+  groupACL.setWriteAccess(userList[i], true);
+}
+
+groupMessage.setACL(groupACL);
+groupMessage.save();
+```
+
+また、`setPublicReadAccess`と`setPublicWriteAccess`では、すべての利用者に一度に権限を付与できます。これにより伝言板へのコメントの投稿といったパターンが可能になります。たとえば、編集は作成者のみに許可し、読み取りはすべての利用者に許可する投稿を作成するには、次の手順で行います。
+
+```js
+var publicPost = new Post();
+var postACL = new Parse.ACL(Parse.User.current());
+postACL.setPublicReadAccess(true);
+publicPost.setACL(postACL);
+publicPost.save();
+```
+
+書き込み権限を持たないオブジェクトを削除するといったように、禁止されている操作を行うと`Parse.Error.OBJECT_NOT_FOUND`エラーコードが発生します。セキュリティ目的から、存在しているオブジェクトIDで保護されているものと、存在していないオブジェクトIDをクライアントが区別できないようになっています。
+
+
+## パスワードの再設定
+
+実際問題として、システムにパスワードを導入しても、利用者はすぐに忘れてしまいます。そのような場合でも、Parseのライブラリにはパスワードを安全に再設定する方法が用意されています。
+
+再設定フローを開始するには、利用者にメールアドレスを要求し、次の内容を呼び出します。
+
+```js
+Parse.User.requestPasswordReset("email@example.com", {
+  success: function() {
+    // Password reset request was sent successfully
+  },
+  error: function(error) {
+    // Show the error message somewhere
+    alert("Error: " + error.code + " " + error.message);
+  }
+});
+```
+
+指定されたメールと利用者のメールまたはユーザーネームフィールドが照合され、パスワード再設定用のメールが送信されます。これにより、利用者のメールをユーザーネームとして使用するか、メールを別に収集してメールフィールドに格納するかを選択できます。
+
+パスワード再設定のフローは次のとおりです。
+
+1.  利用者がメールによりパスワードの再設定をリクエストする。
+2.  Parseが、パスワード再設定用の特別のリンクが記載されたメールを利用者のアドレスに送信する。
+3.  利用者が再設定リンクをクリックすると、新しいパスワードを入力するための特別なParseページにリダイレクトされる。
+4.  利用者が新しいパスワードを入力する。パスワードが、利用者が指定した値に再設定される。
+
+このフロー内のメッセージは、このアプリをParseに作成したときに指定した名前でアプリを参照しています。
+
+
+## クエリ
+
+利用者にクエリを実行するには、`Parse.User`に新しい`Parse.Query`を作成します。
+
+```js
+var query = new Parse.Query(Parse.User);
+query.equalTo(gender, "female");
+// find all the women
+query.find({
+  success: function(women) {
+    // Do stuff
+  }
+});
+```
+
+
+## 関連付け
+
+`Parse.User`に関連する関連付けは細かい設定なしにすぐに利用できます。たとえば、ブログアプリを作成するとします。新しい投稿を保存し、すべての投稿を取得するには、次のようにします。
+
+```js
+var user = Parse.User.current();
+// Make a new post
+var Post = Parse.Object.extend("Post");
+var post = new Post();
+post.set("title", "My New Post");
+post.set("body", "This is some great content.");
+post.set("user", user);
+post.save(null, {
+  success: function(post) {
+    // Find all posts by the current user
+    var query = new Parse.Query(Post);
+    query.equalTo("user", user);
+    query.find({
+      success: function(usersPosts) {
+        // userPosts contains all of the posts by the current user.
+      }
+    });
+  }
+});
+```
+
+
+## データブラウザのUser
+
+Userクラスは、`Parse.User`オブジェクトを格納するための専用の特別のクラスです。データブラウザでは、Userクラスの横に人を表す小さなアイコンが表示されます。
+
+<%= image_tag 'docs/user_icon.png', :style => 'border: 1px solid #eee' %>
+
+
+# 役割
+
+アプリの対象範囲や利用者ベースが大きくなると、利用者にリンクしたACLが提供するアクセス方法よりも、データへのアクセスをよりおおまかに制御したいと感じることがあります。この要件に対処するために、Parseは[役割ベースのアクセス制御](http://en.wikipedia.org/wiki/Role-based_access_control)形式をサポートしています。役割を使用すると、Parseデータへの共通のアクセス権限を持つ利用者を論理的にグループ化できます。役割は、利用者とその他の役割を持つ、名前付きのオブジェクトです。役割に付与される権限はその利用者と、その役割を内包する役割の利用者に暗黙的に付与されます。
+
+たとえば、管理されたコンテンツを持つアプリケーションには、他の利用者が作成したコンテンツを修正、削除できる「モデレータ」と呼ばれる利用者が多数存在することになります。さらに、モデレータと同じ権限を持つがアプリケーションの全般的な設定を修正できる「管理者」と呼ばれる一連の利用者も存在する場合があります。こういった役割に利用者を追加すると、各利用者のリソースごとに権限を手動で付与しなくても、新しい利用者をモデレータや管理者として作成できます。
+
+Parseでは、これらの役割オブジェクトを表す`Parse.Role`と呼ばれる特別のクラスをクライアントコードに用意しています。`Parse.Role`は`Parse.Object`のサブクラスであり、柔軟なスキーマ、自動継続、主要な値に関するインターフェイスなど、同じ機能をすべて使用できます。`Parse.Object`に関するメソッドはすべて`Parse.Role`でも使用できます。`Parse.Role`には役割管理に固有の特別な追加事項がある点が異なります。
+
+
+## プロパティ
+
+`Parse.Role`には、`Parse.Object`にはないプロパティをいくつか設定できます。
+
+*   name:役割の名前です。この値は必須であり、役割を作成するときに一度だけ設定できます。名前に使用できる文字は、英数字、スペース、-、_です。この名前によりobjectIdがなくても役割を識別できます。
+*   users:役割に付与した権限を継承する一連の利用者への[関係](#objects-pointers)です。
+*   roles:役割に付与した権限を継承する一連の利用者と役割への[関係](#objects-pointers)です。
+
+
+## 役割オブジェクトのセキュリティ
+
+`Parse.Role`はParseのその他のすべてのオブジェクトと同じセキュリティスキーマ（ACL）を使用しますが、ACLを明示的に設定する必要がある点が異なります。一般に、上位の権限を持つ利用者（マスターユーザーや管理者）が役割の作成や修正を行うため、それに応じてACLを定義する必要があります。利用者の`Parse.Role`に書き込み権限を付与する場合は、その利用者は役割に他の利用者を追加したり、役割を完全に削除できることになります。
+
+新しい`Parse.Role`を作成するには、次のように記述します。
+
+```js
+// By specifying no write privileges for the ACL, we can ensure the role cannot be altered.
+var roleACL = new Parse.ACL();
+roleACL.setPublicReadAccess(true);
+var role = new Parse.Role("Administrator", roleACL);
+role.save();
+```
+
+`Parse.Role`の「users」と「roles」を通じて、新しい役割の権限を継承する利用者や役割を追加できます。
+
+```js
+var role = new Parse.Role(roleName, roleACL);
+for (var i = 0; i < usersToAddToRole.length; i++) {
+  role.getUsers().add(usersToAddToRole[i]);
+}
+for (var i = 0; i < rolesToAddToRole.length; i++) {
+  role.getRoles().add(rolesToAddToRole[i]);
+}
+role.save();
+```
+
+修正権限を持つ利用者しか修正できないため、ACLを役割に割り当てる際には慎重に行ってください。
+
+
+## その他のオブジェクトのセキュリティ
+
+アプリケーションで使用する一連の役割を作成しましたので、その役割をACLとともに使用し、利用者が受け取る権限を定義できます。それぞれの`Parse.Object`では`Parse.ACL`を指定でき、オブジェクトへの読み取り/書き込み権限を付与される利用者や役割のアクセス制御リストを設定できます。
+
+オブジェクトへの読み取り/書き込み権限は簡単に付与できます。`Parse.Role`を使用して付与することもできます。
+
+```js
+var moderators = /* Query for some Parse.Role */;
+var wallPost = new Parse.Object("WallPost"); 
+var postACL = new Parse.ACL();
+postACL.setRoleWriteAccess(moderators, true);
+wallPost.setACL(postACL);
+wallPost.save();
+```
+
+ACLに名前を指定すると、役割へのクエリの実行を避けることができます。
+
+```js
+var wallPost = new Parse.Object("WallPost");
+var postACL = new Parse.ACL();
+postACL.setRoleWriteAccess("Moderators", true);
+wallPost.setACL(postACL);
+wallPost.save();
+```
+
+
+## ロールの階層
+
+上述したように、役割は別の役割を内包でき、2つの役割間では親子関係が構築されます。この関係では、親の役割に権限が付与されると、その子の役割のすべてに黙示的に権限が付与されます。
+
+通常、このようなタイプの関係は、フォーラムのように利用者が管理するコンテンツを持つアプリケーションに見られます。一部の少数の利用者からなるサブセットが「管理者」となり、アプリケーションの設定の調整、新しいフォーラムの作成、グローバルメッセージの設定など、最高レベルのアクセス権限を持ちます。別の利用者グループは「モデレータ」となり、利用者が作成したコンテンツを適切に維持する作業を担当します。管理者権限を持つ利用者には、モデレータの権限も付与する必要があります。この関係を構築するには、次に示すように、「管理者」の役割を「モデレータ」の子の役割に設定します。
+
+```js
+var administrators = /* Your "Administrators" role */;
+var moderators = /* Your "Moderators" role */;
+moderators.getRoles().add(administrators);
+moderators.save();
+```
+
+
+# Facebook利用者
+
+ParseにはFacebookをアプリケーションに統合できる簡単な方法が用意されています。`Parse.FacebookUtils`クラスは`Parse.User`とFacebook Javascript SDKを統合することで、利用者とそのFacebook IDとの結び付けを簡単にします。
+
+Facebookの統合では、認証されたFacebook利用者を`Parse.User`に関連付けることができます。数行のコードだけで、「Facebookでログイン」オプションをアプリに設置でき、そのデータをParseに保存できるようになります。
+
+
+## 設定
+
+FacebookをParseとともに使用するには、次の作業が必要になります。
+
+1.  [Facebookアプリを設定](https://developers.facebook.com/apps)します。すでに設定してある場合、この手順は不要です。[アプリをFacebookに結合する方法を選択]で[Facebookログインのあるウェブサイト]オプションを選択し、サイトのURLを入力します。
+2.  アプリケーションのFacebookアプリケーションIDをParseアプリケーションの設定ページに追加します。
+3.  [こちらにある手順](https://developers.facebook.com/docs/reference/javascript/)に従って、Facebook Javascript SDKをアプリケーションに読み込みます。
+4.  `FB.init()`への呼び出しを`Parse.FacebookUtils.init()`への呼び出しに置き換えます。たとえば、Facebook SDKを非同期に読み込んだ場合、`fbAsyncInit`関数は次のようになります。
+```js
+window.fbAsyncInit = function() {
+  Parse.FacebookUtils.init({
+   appId: 'YOUR_APP_ID', // Facebook App ID
+   channelUrl: '//WWW.YOUR_DOMAIN.COM/channel.html', // Channel File
+   status: true, // check login status
+   cookie: true, // enable cookies to allow Parse to access the session
+   xfbml: true  // parse  });
+  // Additional initialization code here
+};
+```
+
+Facebookに関連する問題が発生した場合は、[Facebookの公式スタートガイド](https://developers.facebook.com/docs/reference/javascript/)をご覧ください。
+
+FacebookをParse利用者と連動させて使用するには、(1) Facebook利用者にログインして`Parse.User`を作成する方法と、(2) Facebookを既存の`Parse.User`にリンクさせる方法の2つがあります。
+
+
+## ログインと登録
+
+`Parse.FacebookUtils`には、`Parse.User`がFacebookを通じてログインまたは登録するための手段が用意されています。これは`logIn()`メソッドを使用して行います。
+
+```js
+Parse.FacebookUtils.logIn(null, {
+  success: function(user) {
+    if (!user.existed()) {
+      alert("User signed up and logged in through Facebook!");
+    } else {
+      alert("User logged in through Facebook!");
+    }
+  },
+  error: function(user, error) {
+    alert("User cancelled the Facebook login or did not fully authorize.");
+  }
+});
+```
+
+このコードを実行すると、次のようになります。
+
+1.  利用者にFacebookログインダイアログが表示されます。
+2.  利用者はFacebookを通じて認証を行い、アプリがコールバックを受け取ります。
+3.  ParseのSDKがFacebookデータを受け取り、それを`Parse.User`に保存します。Facebook IDを使用した新しい利用者の場合は、その利用者が作成されます。
+4.  利用者が`success`コールバックを呼び出します。
+
+コンマ区切りの文字列を使用すると、アプリがFacebook利用者に要求する[権限](https://developers.facebook.com/docs/authentication/permissions/)を指定することもできます。次に例を示します。
+
+```js
+Parse.FacebookUtils.logIn("user_likes,email", {
+  success: function(user) {
+    // Handle successful login
+  },
+  error: function(user, error) {
+    // Handle errors and cancellation
+  }
+});
+```
+
+追加設定なしで作業する場合、`Parse.User`の統合には権限は必要ありません（つまり`null`や権限の指定なしも問題なく使用できます）。[詳細については、Facebookの開発者ガイドにある権限に関する記載をご覧ください。](https://developers.facebook.com/docs/reference/api/permissions/)
+
+<div class="callout_green">
+認証後にFacebook利用者から取得したデータを保存するかどうかは自由に設定できます。設定する場合は、[FacebookのSDKを介したグラフクエリを実行](https://parse.com/questions/how-can-i-find-parse-users-that-are-facebook-friends-with-the-current-user)する必要があります。
+</div>
+
+
+## リンク
+
+既存の`Parse.User`をFacebookアカウントに関連付ける場合は、次のようにリンクします。
+
+```js
+if (!Parse.FacebookUtils.isLinked(user)) {
+  Parse.FacebookUtils.link(user, null, {
+    success: function(user) {
+      alert("Woohoo, user logged in with Facebook!");
+    },
+    error: function(user, error) {
+      alert("User cancelled the Facebook login or did not fully authorize.");
+    }
+  });
+}
+```
+
+リンク時に必要な手順はログイン手順に非常に似ていますが、正常にログインした場合は既存の`Pars.eUser`がFacebook情報で更新されるという点が異なります。今後Facebookを通じてログインすると、利用者は既存のアカウントにログインすることになります。
+
+Facebookと利用者のリンクを解除する場合は、次のようにします。
+
+```js
+Parse.FacebookUtils.unlink(user, {
+  success: function(user) {
+    alert("The user is no longer associated with their Facebook account.");
+  }
+});
+```
+
+## Facebook SDKとParse
+
+Facebook Javascript SDKには、多数のFacebookのAPIとのやり取りの開始点となるメインの`FB`オブジェクトがあります。[SDKについて詳しくは、こちらをご覧ください](https://developers.facebook.com/docs/reference/javascript/)。
+
+Parse SDKを使用するFacebookログインの場合、`Parse.FacebookUtils.init()`を呼び出す前にFacebook SDKを前もって読み込んでおく必要があります。
+
+Facebookのライブラリは`FB`オブジェクトを管理します。`FB`シングルトンはデフォルトで現在の利用者に同期されるため、呼び出したメソッドはすべて、現在の`Parse.User`に関連付けられているFacebook利用者に対して実行されます。`FB.login()`か`FB.logOut()`の明示的な呼び出しは、`Parse.User`と`FB`オブジェクトの同期がずれる原因となるため、推奨されません。
+
+
+# クラウド関数
+
+クラウド関数は、`Parse.Cloud.run`を使用してJavaScriptから呼び出すことができます。たとえば、`hello`という名前のクラウド関数を呼び出すには、次のようにします。
+
+```js
+Parse.Cloud.run('hello', {}, {
+  success: function(result) {
+    // result is 'Hello world!'
+  },
+  error: function(error) {   }
+});
+```
+
+<div class="callout_green">    
+クラウド関数に関する詳細については、[Cloud Codeガイド](/docs/jp/cloud_code_guide#functions-calling)を参照してください。
+</div>
+
+
+# GeoPoint
+
+Parseでは、現実世界の緯度と経度座標をオブジェクトに関連付けることができます。`Parse.GeoPoint`を`Parse.Object`に追加すると、オブジェクトから参照点までの距離を考慮したクエリを実行できます。こうすることで、別の利用者に最も近い場所にいる利用者や、利用者に最も近い場所を簡単に探すことができます。
+
+
+## Parse.GeoPoint
+
+場所をオブジェクトに関連付けるには、最初に`Parse.GeoPoint`を作成する必要があります。たとえば、緯度40.0度、経度-30.0度の場所を作成する場合は、次のようにします。
+
+```js
+var point = new Parse.GeoPoint({latitude: 40.0, longitude: -30.0});
+```
+
+そうすると、この場所がオブジェクトの不変フィールドに格納されます。
+
+```js
+placeObject.set("location", point);
+```
+
+注: 現在、クラス内のキーを1つだけ`Parse.GeoPoint`に設定できます。
+
+
+## 地理クエリ
+
+これで、空間座標を持つオブジェクトがまとめて作成されました。どのオブジェクトが場所に最も近いかを調べてみましょう。それには、`near`を使用して、`Parse.Query`に別の制限を追加します。利用者に最も近い10の場所のリストを取得する場合は、次のようになります。
+
+```js
+// User's location
+var userGeoPoint = userObject.get("location");
+// Create a query for places
+var query = new Parse.Query(PlaceObject);
+// Interested in locations near user.
+query.near("location", userGeoPoint);
+// Limit what could be a lot of points.
+query.limit(10);
+// Final list of objects
+query.find({
+  success: function(placesObjects) {   }
+});
+```
+
+この時点では、`placesObjects`は`userGeoPoint`からの距離（最も近いものから最も遠いもの）で並べられたオブジェクトの配列になります。追加の`ascending()`/`descending()`の並べ替え制限を適用すると、距離の順番よりも優先されます。
+
+距離を使用して結果を絞り込むには、`withinMiles`、`withinKilometers`、`withinRadians`の詳細を確認してください。
+
+さらに、特定の区域内に限定した一連のオブジェクトにクエリを実行することもできます。長方形の境界ボックス内のオブジェクトを探すには、`Parse.Query`に`withinGeoBox`制限を追加します。
+
+```js
+var southwestOfSF = new Parse.GeoPoint(37.708813, -122.526398);
+var northeastOfSF = new Parse.GeoPoint(37.822802, -122.373962);
+
+var query = new Parse.Query(PizzaPlaceObject);
+query.withinGeoBox("location", southwestOfSF, northeastOfSF);
+query.find({
+  success: function(pizzaPlacesInSF) {
+    ...
+  }
+});
+```
+
+## 注意事項
+
+現在のところ、次のような点に注意が必要です。
+
+1.  各Parse.Objectクラスには、Parse.GeoPointオブジェクトを持ったキーを1つだけ設定できます。
+2.  範囲の限度と同じ、または超過した地点に場所を設定できません。緯度を-90.0または90.0に設定することはできません。経度を-180.0または180.0に設定することはできません。境界外に緯度や経度を設定しようとするとエラーが発生します。
+
+
+# プッシュ通知
+
+プッシュ通知は、アプリの利用率を維持し、アプリの情報を利用者に通知するのに非常に便利な手段です。利用者全体にすばやく、効率的にリーチできます。このガイドでは、設定手順と、プッシュ通知送信のためのParseの一般的な使用方法を紹介します。
+
+<div class="callout_green">
+現在、JavaScript SDKはプッシュの受信をサポートしていません。iOS用アプリケーションやAndroid用アプリケーションに通知を送信する場合にのみ使用できます。一般的な使用例は、[Cloud Code](/docs/jp/cloud_code_guide)からのプッシュの送信です。
+</div>
+
+
+# プッシュの設定
+
+プッシュ通知の送信にJavaScript SDKを使用する場合、設定は必要ありません。iOSクライアントやAndroidクライアントでプッシュの使用を構成していない場合は、上部のプラットフォーム切り替え機能を使用して、それぞれの手順を確認します。
+
+
+# Installation
+
+プッシュ通知に登録された端末にインストールされている各Parseアプリケーションには、関連する`Installation`オブジェクトがあります。`Installation`オブジェクトには、プッシュ通知のターゲットを設定するのに必要なすべてのデータが格納されます。たとえば、野球アプリの場合、利用者が興味を持っているチームを格納しておけば、チーム成績に関する更新情報を送信できます。
+
+`Installation`データを修正できるのは、クライアントSDK、データブラウザ、REST APIのいずれかです。
+
+このクラスには、端末の管理とターゲット設定に便利な、特別のフィールドがあります。
+
+*   **`badge`**: iOSアプリのアイコンバッジの現在の値。サーバー上のこの値を変更すると、その値はバッジの値が増やす次のプッシュ通知に使用されます。
+*   **`channels`**: 現在、端末を登録してあるチャンネルの配列。
+*   **`timeZone`**: ターゲット端末がある現在のタイムゾーン。この値は`Installation`オブジェクトが端末から保存されるたびに同期されます（読み取り専用）。
+*   **`deviceType`**: 端末のタイプ（「ios」または「android」）（読み取り専用）。
+*   **`installationId`**: Parseが使用する端末の一意のID （読み取り専用）。
+*   **`deviceToken`**: Appleが生成するiOS端末用のトークン（読み取り専用）。
+
+
+# プッシュの送信
+
+Parseが使用するプッシュ通知の送信方法には、[チャンネル](#sending-channels)と[詳細なターゲット設定](#sending-queries)の2つの方法があります。チャンネルにはプッシュ送信用の簡単で使いやすいモデルが用意されており、詳細なターゲット設定にはより詳細で柔軟性のあるモデルが用意されています。両方の方法とも互いに完全な互換性を持っています。詳細はこのセクションで説明します。
+
+通常、通知はウェブコンソールのREST APIか[Cloud Code](#sending)を使用して送信します。Cloud CodeではJavaScript SDKが使用されていることから、クラウド関数からプッシュを送信する場合は、JavaScript SDKが開始点になります。ただし、Cloud Code外のJavaScript SDKやその他のクライアントSDKから通知を送信する場合は、Parseアプリのプッシュ通知設定に<% if current_user && @apps[0] %><%= link_to_settings @apps[0], "Client Push Enabled", "push"  %>   <% else %>     **Client Push Enabled**   ```を設定する必要があります。
+
+![](docs/client_push_settings.png)
+
+
+## チャンネルの使用
+
+通知を送信するのに最も簡単な方法はチャンネルを使用する方法です。チャンネルでは、プッシュ送信に発行者-登録者モデルを使用できます。まず端末を1つまたは複数のチャンネルに登録すると、後でその登録者に通知が送信されます。特定の`Installation`が登録したチャンネルは`Installation`オブジェクトの`channels`フィールドに格納されます。
+
+### チャンネルへの登録
+
+<div class="callout_green">
+現在、JavaScript SDKはプッシュ用のiOS端末とAndroid端末の登録をサポートしていません。上部のプラットフォーム切り替え機能を使用して、iOS、Android、RESTのプッシュガイドを参照してください。
+</div>
+
+### チャンネルへのプッシュの送信
+
+JavaScript SDKでは、次のコードを使用して「ジャイアンツ」チャンネルと「メッツ」チャンネルのすべての登録者に試合結果を知らせることができます。iOSユーザーの場合は通知センターアラートとして表示され、Androidユーザーにはシステムトレイ通知として表示されます。
+
+```js
+Parse.Push.send({
+  channels: [ "Giants", "Mets" ],
+  data: {
+    alert: "The Giants won against the Mets 2-3."
+  }
+}, {
+  success: function() {
+    // Push was successful
+  },
+  error: function(error) {
+    // Handle error
+  }
+});
+```
+
+
+## 高度なターゲット設定の使用
+
+多くのアプリケーションでチャンネルは大変便利ですが、プッシュの受信者のターゲットを設定する場合は、より詳細な設定が必要になることがあります。Parseでは、[クエリ作成API](#queries)を使用して`Installation`オブジェクトのサブセット用のクエリを記述し、プッシュを送信できます。
+
+`Installation`オブジェクトはParseに格納されるその他のオブジェクトとまったく同じオブジェクトであり、必要なデータを保存したり、`Installation`オブジェクトとその他のオブジェクトの間の関係を作成したりできます。そのため、詳細にカスタマイズした利用者ベースのセグメントや動的なセグメントにプッシュを送信できます。
+
+### インストールデータの保存
+
+<div class="callout_green">
+現在、JavaScript SDKは`Installation`オブジェクトの修正をサポートしていません。上部のプラットフォーム切り替え機能を使用して、iOS、Android、RESTのプッシュガイドを参照してください。
+</div>
+
+### クエリへのプッシュの送信
+
+`Installation`オブジェクトにデータを保存したら、クエリを使用してこれらの端末のサブセットにターゲットを設定できます。`Parse.Installation`クエリはその他の[Parseクエリ](#queries)と同様の働きをします。
+
+```js
+var query = new Parse.Query(Parse.Installation);
+query.equalTo('injuryReports', true);
+
+Parse.Push.send({
+  where: query, // Set our Installation query
+  data: {
+    alert: "Willie Hayes injured by own pop fly."
+  }
+}, {
+  success: function() {
+    // Push was successful
+  },
+  error: function(error) {
+    // Handle error
+  }
+});
+```
+
+Parseのクエリにはチャンネルも使用できます。「ジャイアンツ」チャンネルのすべての登録者の内、得点の更新情報をしりたい登録者に絞り込んでプッシュを送信するには、次のようにします。
+
+```js
+var query = new Parse.Query(Parse.Installation);
+query.equalTo('channels', 'Giants'); // Set our channel
+query.equalTo('scores', true);
+
+Parse.Push.send({
+  where: query,
+  data: {
+    alert: "Giants scored against the A's! It's now 2-2."
+  }
+}, {
+  success: function() {
+    // Push was successful
+  },
+  error: function(error) {
+    // Handle error
+  }
+});
+```
+
+`Installation`クラスに他のオブジェクトへの関係を格納する場合、クエリの関係を使用することもできます。たとえば、特定の場所付近のすべての利用者にプッシュ通知を送信する場合は、次のようにします。
+
+```js
+// Find users near a given location
+var userQuery = new Parse.Query(Parse.User);
+userQuery.withinMiles("location", stadiumLocation, 1.0);
+
+// Find devices associated with these users
+var pushQuery = new Parse.Query(Parse.Installation);
+pushQuery.matchesQuery('user', userQuery);
+// Send push notification to query
+Parse.Push.send({
+  where: pushQuery,
+  data: {
+    alert: "Free hotdogs at the Parse concession stand!"
+  }
+}, {
+  success: function() {
+    // Push was successful
+  },
+  error: function(error) {
+    // Handle error
+  }
+});
+```
+
+
+# オプションの送信
+
+プッシュ通知にはメッセージ送信以外の機能もあります。iOSでは、再生する音声、表示するバッジ番号、送信したいカスタムデータをプッシュに入れることができます。Androidでは、通知の受信時に起動する`Intent`を指定できます。さらに、時間制約がある場合は、通知に期日を有効期限できます。
+
+
+## 通知のカスタマイズ
+
+メッセージ以外のコンテンツを送信したい場合は、`data`辞書にその他のフィールドを設定します。次のように、特別な意味を持つ予約済みのフィールドがあります。
+
+*   **`alert`**: 通知のメッセージ。
+*   **`badge`**: （iOSのみ）アプリアイコンの右上に表示される値。値に設定するか、現在の値を1増やすための`Increment`に設定できます。
+*   **`sound`**: （iOSのみ）アプリケーションバンドル内の音声ファイルの名前。
+*   **`content-available`**: (iOSのみ) [Newsstand](http://developer.apple.com/library/iOS/#technotes/tn2280/_index.html)アプリを作成する場合や、[introduced in iOS7で導入された](https://developer.apple.com/library/ios/releasenotes/General/WhatsNewIniOS/Articles/iOS7.html#//apple_ref/doc/uid/TP40013162-SW10)Remote Notification Background Mode（別名「Background Push」）を使用するアプリを作成する場合は、この値を1に設定すると、バックグラウンドでのダウンロードが開始されます。
+*   **`action`**: （Android のみ）プッシュを受信したときに`Intent`を起動します。`title`や`alert`の値が指定されていない場合は、`Intent`は起動しますが、利用者に通知は表示されません。
+*   **`title`**: （Android のみ）Androidのシステムトレイ通知に表示される値。
+
+たとえば、現在のバッジ番号を1増やし、iOS端末でカスタムの音声を再生し、Androidユーザーには特定のタイトルを表示するす通知を送信するには、次のようにします。
+
+```js
+Parse.Push.send({
+  channels: [ "Mets" ],
+  data: {
+    alert: "The Mets scored! The game is now tied 1-1.",
+    badge: "Increment",
+    sound: "cheering.caf",
+    title: "Mets Score!"
+  }
+}, {
+  success: function() {
+    // Push was successful
+  },
+  error: function(error) {
+    // Handle error
+  }
+});
+```
+
+この辞書には独自のデータを指定することもできます。iOSとAndroidの「通知の受信」セクションでも説明したとおり、iOSの場合は利用者が通知経由でアプリを開けた場合にのみこのデータにアクセスでき、Androidの場合は`Intent`を指定した場合に、その中でデータが提供されます。
+
+```js
+var query = new Parse.Query(Parse.Installation);
+query.equalTo('channels', 'Indians');
+query.equalTo('injuryReports', true);
+Parse.Push.send({
+  where: query,
+  data: {
+    action: "com.example.UPDATE_STATUS",
+    alert: "Ricky Vaughn was injured in last night's game!",
+    name: "Vaughn",
+    newsItem: "Man bites dog"
+  }
+}, {
+  success: function() {
+    // Push was successful
+  },
+  error: function(error) {
+    // Handle error
+  }
+});
+```
+
+
+## 有効期限の設定
+
+利用者の端末がオフになっていたり、インターネットに接続されていない場合は、プッシュ通知は配信されません。時間制約があり、期日後には配信する必要がない通知の場合は、有効期限を設定できます。これにより、すでに関連性がなくなっている不要な情報を利用者に通知することがなくなります。
+
+Parseに用意された2つのパラメータでは、通知の有効期限を設定できます。1つ目の`expiration_time`は、Parseからの通知の送信を停止する期日を指定する`Date`を持ちます。今からちょうど1週間後に通知の有効期限が切れるように設定するには、次のようにします。
+
+<% date = 1.weeks.from_now.utc %>
+```js
+Parse.Push.send({
+  where: everyoneQuery,
+  expiration_time: new Date(<%= "#{date.year}, #{date.month}, #{date.day}" %>),
+  data: {
+    alert: "Season tickets on sale until <%= "#{date.strftime('%B %e, %Y')}" %>"
+  }
+}, {
+  success: function() {
+    // Push was successful
+  },
+  error: function(error) {
+    // Handle error
+  }
+});
+```
+
+また、`expiration_interval`パラメータを使用すると、通知の有効期限が切れるまでの期間を指定できます。この値は[通知のスケジュール設定](#scheduled)に使用する`push_time`パラメータに関連します。つまり、送信を1日後、有効期間を6日間にスケジュール設定したプッシュ通知を、今から1週間以内であれば受け取るよう設定できます。
+
+```js
+var oneDayAway = new Date(...);
+var sixDaysAwayEpoch = (new Date(...)).getTime();
+
+Parse.Push.send({
+  push_time: oneDayAway,
+  expiration_interval: sixDaysAwayEpoch,
+  data: {
+    alert: "Season tickets on sale until next week!" %>"
+
+}, {
+  success: function() {
+    // Push was successful
+  },
+  error: function(error) {
+    // Handle error
+  }
+});
+```
+
+## プラットフォームごとのターゲット設定
+
+クロスプラットフォームのアプリを作成する場合は、iOS端末かAndroid端末のみをターゲットに設定することもできます。いずれの端末をターゲットに設定するかをフィルタするメソッドが2つ用意されています。デフォルトでは両方のプラットフォームがターゲットに設定されています。
+
+次の例はAndroidユーザーとiOSユーザーに異なる通知を送信します。
+
+```js
+// Notification for Android users
+var query = new Parse.Query(Parse.Installation);
+query.equalTo('deviceType', 'android');
+Parse.Push.send({
+  where: query,
+  data: {
+    alert: "Your suitcase has been filled with tiny robots!"
+  }
+}, {
+  success: function() {
+    // Push was successful
+  },
+  error: function(error) {
+    // Handle error
+  }
+});
+// Notification for iOS users
+var query = new Parse.Query(Parse.Installation);
+query.equalTo('deviceType', 'ios');
+Parse.Push.send({
+  where: query,
+  data: {
+    alert: "Your suitcase has been filled with tiny apples!"
+  }
+}, {
+  success: function() {
+    // Push was successful
+  },
+  error: function(error) {
+    // Handle error
+  }
+});
+```
+
+
+# プッシュのスケジュール設定
+
+`push_time`を指定すると、前もってプッシュのスケジュールを設定しておくことができます。たとえば、ゲームのリマインダーを<%= date.strftime("%B %e, %Y") %>の正午（UTC）にスケジュール設定すると、次のように送信することでプッシュ通知のスケジュールを設定できます。
+
+```js
+var tomorrowDate = new Date(...);
+
+var query = new Parse.Query(Parse.Installation);
+query.equalTo('user_id', 'user_123');
+
+Parse.Push.send({
+  where: query,
+  data: {
+    alert: "You previously created a reminder for the game today" 
+  },
+  push_time: tomorrowDate
+}, {
+  success: function() {
+    // Push was successful
+  },
+  error: function(error) {
+    // Handle error
+  }
+});
+```
+
+さらに`expiration_interval`を指定した場合は、プッシュの送信時間ではなく、スケジュール設定されたプッシュの時間から計算されます。つまり、送信を1週間後、有効期間を1日にスケジュール設定したプッシュを、送信後8日に有効期限が切れるように設定できます。
+
+スケジュール設定する時間は過去の時間には設定できず、最長2週間後まで設定できます。上記の例のように日時、タイムゾーンを指定できるISO 8601の日付で指定することもできますし、UNIXエポック時間（秒単位、UTC）を表す数値で指定することもできます。<%= date.strftime("%B %e, %Y") %>の正午(UTC時間)にアラートのスケジュールを設定するには、`push_time`を<%= date.iso8601 %>か<%= date.to_i %>に設定します。
+
+
+# プッシュの受信
+
+<div class="callout_green">
+現在、JavaScript SDKはプッシュの受信をサポートしていません。iOS端末とAndroid端末でのプッシュ通知の受信方法については、プラットフォーム別のガイドを参照してください。
+</div>
+
+
+# View
+
+Parseでは`Backbone.View`のコピーである`Parse.View`を採用しています。アプリでビューを作成する場合はこれを自由に使用できます。このクラスの使用方法の詳細については、[Backbone.View API](http://documentcloud.github.com/backbone/#View)をご覧ください。`Parse.View`では、jQueryかjQueryへの互換性を持つ`$`メソッドを入れる必要があります。
+
+
+# Backboneアプリの変換
+
+すでに[Backbone](http://documentcloud.github.com/backbone/)アプリケーションを使用している場合は、ParseのJavaScript SDKを使えるように簡単に変換できます。変換が終わると、すべてのアプリの機能が記載された静的ファイルのコレクションが作成されます。
+
+<div class="callout_green">
+Parseをバックエンドと使用してユーザーアカウントとデータを保持する[標準的なBackbone ToDoアプリケーション](http://addyosmani.github.com/todomvc/)の作成方法を紹介した[JavaScriptによるToDoアプリのチュートリアル](/tutorials/todo-app-with-javascript)をご覧ください。
+</div>
+
+ParseのJavaScript SDKはBackboneと互換性を持つことから、多少調整するだけでParseの`Parse.Object`と`Parse.Collection`を`Backbone.Model`と`Backbone.Collection`に使用できます。次にアプリの変換方法を説明します。
+
+1.  [既存のJavaScriptアプリにSDKをインストールする手順に従って操作します](/apps/quickstart#js/existing)。
+2.  `Backbone.Model`のすべてのインスタンスを`Parse.Object`で置き換えます。そうすると、`url`と`urlRoot`が、オブジェクトをParseクラスにマッピングする、適切な`className`で置き換えられます。
+
+```js
+var BackboneTodo = Backbone.Model.extend({
+  urlRoot: "/todos"
+});
+
+var ParseTodo = Parse.Object.extend({
+  className: "Todo"
+});
+```
+3.  `Backbone.Collection`のすべてのインスタンスを`Parse.Collection`で置き換え、`Parse.Object`クラスを`model`として指定します。さらに、`query`を指定すると、コレクションにオブジェクトの取得方法を指定できます。
+
+```js
+var ParseTodoCollection = Parse.Collection.extend({
+  model: ParseTodo
+});
+var todos = new ParseTodoCollection();
+// Construct a query to get the current user's todo items
+var query = new Parse.Query(ParseTodo);
+query.equalTo("user", Parse.User.current());
+todos.query = query;
+todos.fetch();
+```
+4.  サーバーからモデルを作成している場合は、必ず`Parse.Query`を作成して、興味のあるオブジェクトを取得する必要があります。これは、`Parse.Collection`の`query`属性に対して行う作業と同じです。
+
+5.  [利用者認証](#users)を使用できるようにアプリを追加、更新し、必要に応じてACLをオブジェクトに適用します。
+
+これで終わりです。アプリが機能し、Parseをバックエンドとして使用します。
+
+
+# エラー処理
+
+大部分のParse JavaScript関数は、Backboneの「options」オブジェクトのような、コールバックを伴うオブジェクトを使用して成功または失敗を報告します。主に`success`と`error`の2つのコールバックが使用されます。`success`は、エラーなしに操作が完了した場合に呼び出されます。一般にこのパラメータは、`save`や`get`の場合は`Parse.Object`になり、`find`の場合は`Parse.Object`の配列になります。
+
+Parseクラウドとネットワークを介してやり取りをしている際に何らかのエラーが発生すると、`error`が呼び出されます。これらのエラーはクラウドへの接続の問題に関連するエラーか、リクエストした操作の実行の問題に関連するエラーのいずれかになります。別の例を見てみましょう。下のコードでは、存在しない`objectId`を持つオブジェクトを取得しようとしています。Parseクラウドから返されるエラーを次のようにコールバックで適切に処理します。
+
+```js
+var query = new Parse.Query(Note);
+query.get("aBcDeFgH", {
+  success: function(results) {
+    // This function will *not* be called.
+    alert("Everything went fine!");
+  },
+  error: function(model, error) {
+    // This will be called.
+    // error is an instance of Parse.Error with details about the error.
+    if (error.code === Parse.Error.OBJECT_NOT_FOUND) {
+      alert("Uh oh, we couldn't find the object!");
+    }
+  }
+});
+```
+
+また、端末がParseクラウドに接続できないため、クエリも失敗します。コールバックは同じですが、このシナリオを処理する簡単な追加コードが付与されています。
+
+```js
+var query = new Parse.Query(Note);
+query.get("thisObjectIdDoesntExist", {
+  success: function(results) {
+    // This function will *not* be called.
+    alert("Everything went fine!");
+  },
+  error: function(model, error) {
+    // This will be called.
+    // error is an instance of Parse.Error with details about the error.
+    if (error.code === Parse.Error.OBJECT_NOT_FOUND) {
+      alert("Uh oh, we couldn't find the object!");
+    } else if (error.code === Parse.Error.CONNECTION_FAILED) {
+      alert("Uh oh, we couldn't even connect to the Parse Cloud!");
+    }
+  }
+});
+```
+
+特定の`Parse.Object`に影響を与える`save`や`signUp`などのメソッドの場合、エラー関数の最初の引数はオブジェクトそのものとなり、2番目の引数は`Parse.Error`オブジェクトとなります。これはBackboneタイプのフレームワークとの互換性を持たせるための措置です。返される可能性のあるすべての`Parse.Error`コードのリストについては、[JavaScript API](/docs/js)のエラーコードに関するセクションをご覧ください。

@@ -65,9 +65,9 @@ The `config` directory contains a JSON configuration file
     For now, just check that these files were created successfully.
     If you're using source control, you can check all of these files in.
 
-  <div class="callout_green">
-    We recommend using source control to check in all of these files. If you're not already set up with source control, try this [tutorial from GitHub](https://guides.github.com/introduction/getting-your-project-on-github/). Keep in mind that these files will contain keys you want to keep private.
-  </div>
+<div class="callout_green">
+  We recommend using source control to check in all of these files. If you're not already set up with source control, try this [tutorial from GitHub](https://guides.github.com/introduction/getting-your-project-on-github/). Keep in mind that these files will contain keys you want to keep private.
+</div>
 
 
 ### A Simple Function

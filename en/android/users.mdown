@@ -261,8 +261,7 @@ It's a fact that as soon as you introduce passwords into a system, users will fo
 To kick off the password reset flow, ask the user for their email address, and call:
 
 ```java
-ParseUser.requestPasswordResetInBackground("myemail@example.com",
-                                           new RequestPasswordResetCallback() {
+ParseUser.requestPasswordResetInBackground("myemail@example.com", new RequestPasswordResetCallback() {
   public void done(ParseException e) {
     if (e == null) {
       // An email was successfully sent with reset instructions.

@@ -31,9 +31,7 @@ self.presentViewController(logInController, animated:true, completion: nil)
 
 ### Configuring the Log In Elements
 
-<div class="center_pic">
-  ![Login Diagram](/images/docs/login_diagram.png)
-</div>
+![Login Diagram](/images/docs/login_diagram.png)
 
 `PFLogInViewController` can be configured to provide a variety of log in options. By default, `PFLogInViewController` presents the following UI:
 
@@ -540,9 +538,7 @@ Several methods are exposed that are called at major events during the data life
 
 ### Pagination
 
-<div class="right_pic">
-  ![](/images/docs/pagination.png)
-</div>
+![](/images/docs/pagination.png)
 
 Pagination ensures that the table only gets one page of objects at a time. You can customize how many objects are in a page by setting the `objectsPerPage` instance variable.
 
@@ -610,6 +606,9 @@ Many apps need to display table view cells which contain images stored in the Pa
 }
 
 @end
+```
+```swift
+// no swift example
 ```
 
 Like `UITableViewCell`, `PFTableViewCell` supports the default layout styles. Unlike `UITableViewCell`, `PFTableViewCell`'s `imageView` property is of the type `PFImageView`, which supports downloading remote images in `PFFile`.
