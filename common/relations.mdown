@@ -26,13 +26,13 @@ PFObject *game= [PFObject objectWithClassName:@"Game"];
 // no swift example
 ```
 ```common-php
-// no swift example
+// no php example
 ```
 ```common-csharp
-// no swift example
+// no c# example
 ```
 ```common-js
-// no swift example
+// no js example
 ```
 
 We can obtain all of the `Game` objects created by a Parse User with a query:
@@ -49,13 +49,13 @@ PFQuery *gameQuery = [PFQuery queryWithClassName:@"Game"];
 // no swift example
 ```
 ```common-php
-// no swift example
+// no php example
 ```
 ```common-csharp
-// no swift example
+// no c# example
 ```
 ```common-js
-// no swift example
+// no js example
 ```
 
 And, if we want to find the Parse User who created a specific `Game`, that is a lookup on the `createdBy` key:
@@ -78,13 +78,13 @@ PFUser *createdBy = [game objectForKey@"createdBy"];
 // no swift example
 ```
 ```common-php
-// no swift example
+// no php example
 ```
 ```common-csharp
-// no swift example
+// no c# example
 ```
 ```common-js
-// no swift example
+// no js example
 ```
 
 For most scenarios, Pointers will be your best bet for implementing one-to-many relationships.
@@ -133,13 +133,13 @@ NSArray *weapons = @[scimitar, plasmaRifle, grenade, bunnyRabbit];
 // no swift example
 ```
 ```common-php
-// no swift example
+// no php example
 ```
 ```common-csharp
-// no swift example
+// no c# example
 ```
 ```common-js
-// no swift example
+// no js example
 ```
 
 Later, if we want to retrieve the `Weapon` objects, it's just one line of code:
@@ -154,13 +154,13 @@ NSArray *weapons = [[PFUser currentUser] objectForKey:@"weaponsList"];
 // no swift example
 ```
 ```common-php
-// no swift example
+// no php example
 ```
 ```common-csharp
-// no swift example
+// no c# example
 ```
 ```common-js
-// no swift example
+// no js example
 ```
 
 Sometimes, we will want to fetch the "many" objects in our one-to-many relationship at the same time as we fetch the "one" object. One trick we could employ is to use the `includeKey` (or `include` in Android) parameter whenever we use a Parse Query to also fetch the array of `Weapon` objects (stored in the `weaponsList` column) along with the Parse User object:
@@ -202,13 +202,13 @@ PFQuery *userQuery = [PFUser query];
 // no swift example
 ```
 ```common-php
-// no swift example
+// no php example
 ```
 ```common-csharp
-// no swift example
+// no c# example
 ```
 ```common-js
-// no swift example
+// no js example
 ```
 
 You can also get the "one" side of the one-to-many relationship from the "many" side. For example, if we want to find all Parse User objects who also have a given `Weapon`, we can write a constraint for our query like this:
@@ -231,13 +231,13 @@ userQuery.whereEqualTo("weaponsList", arrayOfWeapons);
 // no swift example
 ```
 ```common-php
-// no swift example
+// no php example
 ```
 ```common-csharp
-// no swift example
+// no c# example
 ```
 ```common-js
-// no swift example
+// no js example
 ```
 
 ## Many-to-Many
@@ -296,13 +296,13 @@ PFRelation *relation = [book relationforKey:@"authors"];
 // no swift example
 ```
 ```common-php
-// no swift example
+// no php example
 ```
 ```common-csharp
-// no swift example
+// no c# example
 ```
 ```common-js
-// no swift example
+// no js example
 ```
 
 To get the list of authors who wrote a book, create a query:
@@ -335,13 +335,13 @@ PFQuery *query = [relation query];
 // no swift example
 ```
 ```common-php
-// no swift example
+// no php example
 ```
 ```common-csharp
-// no swift example
+// no c# example
 ```
 ```common-js
-// no swift example
+// no js example
 ```
 
 Perhaps you even want to get a list of all the books to which an author contributed. You can create a slightly different kind of query to get the inverse of the relationship:
@@ -372,13 +372,13 @@ PFQuery *query = [PFQuery queryWithClassName:@"Book"];
 // no swift example
 ```
 ```common-php
-// no swift example
+// no php example
 ```
 ```common-csharp
-// no swift example
+// no c# example
 ```
 ```common-js
-// no swift example
+// no js example
 ```
 
 ### Using Join Tables
@@ -413,13 +413,13 @@ PFObject *follow = [PFObject objectWithClassName:@"Follow"];
 // no swift example
 ```
 ```common-php
-// no swift example
+// no php example
 ```
 ```common-csharp
-// no swift example
+// no c# example
 ```
 ```common-js
-// no swift example
+// no js example
 ```
 
 If we want to find all of the people we are following, we can execute a query on the `Follow` table:
@@ -457,13 +457,13 @@ PFQuery *query = [PFQuery queryWithClassName:@"Follow"];
 // no swift example
 ```
 ```common-php
-// no swift example
+// no php example
 ```
 ```common-csharp
-// no swift example
+// no c# example
 ```
 ```common-js
-// no swift example
+// no js example
 ```
 
 It’s also pretty easy to find all the users that are following the current user by querying on the `to` key:
@@ -500,13 +500,13 @@ PFQuery *query = [PFQuery queryWithClassName:@"Follow"];
 // no swift example
 ```
 ```common-php
-// no swift example
+// no php example
 ```
 ```common-csharp
-// no swift example
+// no c# example
 ```
 ```common-js
-// no swift example
+// no js example
 ```
 
 ### Using an Array
@@ -541,13 +541,13 @@ PFObject *book = ...
 // no swift example
 ```
 ```common-php
-// no swift example
+// no php example
 ```
 ```common-csharp
-// no swift example
+// no c# example
 ```
 ```common-js
-// no swift example
+// no js example
 ```
 
 Because the author list is an Array, you should use the `includeKey` (or `include` on Android) parameter when fetching a `Book` so that Parse returns all the authors when it also returns the book:
@@ -584,13 +584,13 @@ PFQuery *bookQuery = [PFQuery queryWithClassName:@"Book"];
 // no swift example
 ```
 ```common-php
-// no swift example
+// no php example
 ```
 ```common-csharp
-// no swift example
+// no c# example
 ```
 ```common-js
-// no swift example
+// no js example
 ```
 
 At that point, getting all the `Author` objects in a given `Book` is a pretty straightforward call:
@@ -605,13 +605,13 @@ NSArray *authorList = [book objectForKey@"authors"];
 // no swift example
 ```
 ```common-php
-// no swift example
+// no php example
 ```
 ```common-csharp
-// no swift example
+// no c# example
 ```
 ```common-js
-// no swift example
+// no js example
 ```
 
 Finally, suppose you have an `Author` and you want to find all the `Book` objects in which she appears. This is also a pretty straightforward query with an associated constraint:
@@ -655,13 +655,13 @@ PFQuery *bookQuery = [PFQuery queryWithClassName:@"Book"];
 // no swift example
 ```
 ```common-php
-// no swift example
+// no php example
 ```
 ```common-csharp
-// no swift example
+// no c# example
 ```
 ```common-js
-// no swift example
+// no js example
 ```
 
 ## One-to-One
