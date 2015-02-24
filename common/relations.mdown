@@ -4,7 +4,7 @@ There are three kinds of relationships. One-to-one relationships enable one obje
 
 There are four ways to build relationships in Parse:
 
-## One-to-Many Relationships
+## One-to-Many
 
 When you’re thinking about one-to-many relationships and whether to implement Pointers or Arrays, there are several factors to consider. First, how many objects are involved in this relationship? If the "many" side of the relationship could contain a very large number (greater than 100 or so) of objects, then you have to use Pointers. If the number of objects is small (fewer than 100 or so), then Arrays may be more convenient, especially if you typically need to get all of the related objects (the "many" in the "one-to-many relationship") at the same time as the parent object.
 
@@ -240,7 +240,7 @@ userQuery.whereEqualTo("weaponsList", arrayOfWeapons);
 // no swift example
 ```
 
-## Many-to-Many Relationships
+## Many-to-Many
 
 Now let’s tackle many-to-many relationships. Suppose we had a book reading app and we wanted to model `Book` objects and `Author` objects. As we know, a given author can write many books, and a given book can have multiple authors. This is a many-to-many relationship scenario where you have to choose between Arrays, Parse Relations, or creating your own Join Table.
 
@@ -664,7 +664,7 @@ PFQuery *bookQuery = [PFQuery queryWithClassName:@"Book"];
 // no swift example
 ```
 
-## One-to-One Relationships
+## One-to-One
 
 In Parse, a one-to-one relationship is great for situations where you need to split one object into two objects. These situations should be rare, but two examples include:
 
