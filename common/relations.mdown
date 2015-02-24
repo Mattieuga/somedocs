@@ -509,7 +509,7 @@ PFQuery *query = [PFQuery queryWithClassName:@"Follow"];
 // no swift example
 ```
 
-### Using Arrays
+### Using an Array
 
 Arrays are used in Many-to-Many relationships in much the same way that they are for One-to-Many relationships. All objects on one side of the relationship will have an Array column containing several objects on the other side of the relationship.
 
