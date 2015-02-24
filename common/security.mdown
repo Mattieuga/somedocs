@@ -211,16 +211,22 @@ All this is just the beginning. Applications can enforce all sorts of complex ac
 *   Data created by a privileged group of users or the developer, like a global message of the day, can have public read access but restrict write access to an "Administrators" role.
 *   A message sent from one user to another can give "read" and "write" access just to those users.
 
-For the curious, here's the format for an ACL that restricts read and write permissions to the owner (whose `objectId` is identified by `"SaMpLeUsErId"`) and enables other users to read the object:
+For the curious, here's the format for an ACL that restricts read and write permissions to the owner (whose `objectId` is identified by `"aSaMpLeUsErId"`) and enables other users to read the object:
 
 ```json
-{ "*":{"read":true}, "SaMpLeUsErId":{"write":true,"read":true} }
+{ 
+    "*": { "read":true }, 
+    "aSaMpLeUsErId": { "read" :true, "write": true } 
+}
 ```
 
 And here's another example of the format of an ACL that uses a Role:
 
 ```json
-{ "role:RoleName":{"read":true}, "SaMpLeUsErId":{"write":true,"read":true} }
+{ 
+    "role:RoleName": { "read": true }, 
+    "aSaMpLeUsErId": { "read": true, "write": true } 
+}
 ```
 
 ## Data Integrity in Cloud Code
@@ -236,8 +242,10 @@ To create validation functions, Cloud Code allows you to implement a `beforeSave
 ```js
 Parse.Cloud.beforeSave(Parse.User, function(request, response) {
   var user = request.object;
-  if (!user.get("email")) { response.error("Every user must have an email address.");
-  } else { response.success();
+  if (!user.get("email")) { 
+    response.error("Every user must have an email address.");
+  } else { 
+    response.success();
   }
 });
 ```
@@ -280,14 +288,17 @@ Parse.Cloud.define("like", function(request, response) {
   var post = new Parse.Object("Post");
   post.id = request.params.postId;
   post.increment("likes");
-  post.save(null, { useMasterKey: true }).then(function() { // If I choose to do something else here, it won't be using // the master key and I'll be subject to ordinary security measures. response.success();
-  }, function(error) { response.error(error);
+  post.save(null, { useMasterKey: true }).then(function() { 
+    // If I choose to do something else here, it won't be using 
+    // the master key and I'll be subject to ordinary security measures. 
+    response.success();
+  }, function(error) { 
+    response.error(error);
   });
 });
 ```
 
 One very common use case for Cloud Code is sending push notifications to particular users. In general, clients can't be trusted to send push notifications directly, because they could modify the alert text, or push to people they shouldn't be able to. Your app's settings will allow you to set whether "client push" is enabled or not; we recommend that you make sure it's disabled. Instead, you should write Cloud Code functions that validate the data to be pushed and sender before sending a push.
- <%= anchor "security-summary", :minor %>
 
 ## Parse Security Summary
 
