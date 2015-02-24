@@ -157,14 +157,11 @@ By using Crash Reporting, you can dramatically improve the quality of your app b
 
 We recommend the following workflow to efficiently fix your crashes:
 
-1.  _Identify crashes to fix._
-
-The main view of the Crash Reporting dashboard shows all your crashes ordered by the number of occurrences. Typically, you'll want to start by fixing the crashes that are affecting the most users. You can click on each crash and get details such as the stack trace, OS versions, device types, and affected app versions.2.  _Fix a crash._
-
-Do some debugging and fix your crash in your client code.3.  _Bump your build version and build a new release._
-4.  _Mark the crash as resolved and release a new build to the App Store._
-
-Once resolved, the crash will no longer show up on the crash listings page with the default filters. If the crash does occur again in a later version, it will automatically be marked as unresolved, and will show up on the listing again.5.  Go back to step 1 and continue to improve your app!
+1.  **Identify crashes to fix**: The main view of the Crash Reporting dashboard shows all your crashes ordered by the number of occurrences. Typically, you'll want to start by fixing the crashes that are affecting the most users. You can click on each crash and get details such as the stack trace, OS versions, device types, and affected app versions.
+2.  **Fix a crash**: Do some debugging and fix your crash in your client code.
+3.  **Bump your build version and build a new release**
+4.  **Mark the crash as resolved and release a new build to the App Store**: Once resolved, the crash will no longer show up on the crash listings page with the default filters. If the crash does occur again in a later version, it will automatically be marked as unresolved, and will show up on the listing again.
+5.  Go back to step 1 and continue to improve your app!
 
 ## Troubleshooting
 
