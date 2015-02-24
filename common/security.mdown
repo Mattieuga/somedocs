@@ -4,7 +4,7 @@ As your app development progresses, you will want to use Parse's security featur
 
 If your app is compromised, it's not only you as the developer who suffers, but potentially the users of your app as well. Continue reading for our suggestions for sensible defaults and precautions to take before releasing your app into the wild.
 
-## Connection Between Client and Server
+## Client vs. Server
 
 When an app first connects to Parse, it identifies itself with an Application ID and a Client key (or REST Key, or .NET Key, or JavaScript Key, depending on which platform you're using). These are not secret and by themselves they do not secure an app. These keys are shipped as a part of your app, and anyone can decompile your app or proxy network traffic from their device to find your client key. This exploit is even easier with JavaScript — one can simply "view source" in the browser and immediately find your client key.
 
@@ -30,13 +30,13 @@ Once you are confident that you have the right classes and relationships between
 
 Almost every class that you create should have these permissions tweaked to some degree. For classes where every object has the same permissions, class-level settings will be most effective. For example, one common use case entails having a class of static data that can be read by anyone but written by no one.
 
-### Restrict class creation on Parse
+### Restricting class creation
 
 As a start, you can configure your application so that clients cannot create new classes on Parse. This is done from the Settings tab on the Data Browser. Scroll down to the **App Permissions** section and turn off **Allow client class creation**. Once enabled, classes may only be created from the Data Browser. This will prevent attackers from filling your database with unlimited, arbitrary new classes.
 
 ![](docs/security/client_class_creation.png)
 
-### Configuring class-level permissions
+### Configuring CLPs
 
 Parse lets you specify what operations are allowed per class. This lets you restrict the ways in which clients can access or modify your classes. To change these settings, go to the Data Browser, select a class, open the "More" dropdown, and click the "Set permissions" item.
 

@@ -1,8 +1,8 @@
 # Push Notifications
 
-If you haven't installed the SDK yet, please [head over to the Push QuickStart](/apps/quickstart_push) to get our SDK up and running.
-
 Push Notifications are a great way to keep your users engaged and informed about your app. You can reach your entire user base quickly and effectively. This guide will help you through the setup process and the general usage of Parse to send push notifications.
+
+If you haven't installed the SDK yet, please [head over to the Push QuickStart](/apps/quickstart_push) to get our SDK up and running.
 
 ## Setting Up Push
 
@@ -377,12 +377,11 @@ When a user's device is turned off or not connected to the internet, push notifi
 There are two methods provided by the `PFPush` class to allow setting an expiration date for your notification. The first is `expireAtDate:` which simply takes an `NSDate` specifying when Parse should stop trying to send the notification.
 
 ```objc
-  <% date = 1.days.from_now %>
 // Create date object for tomorrow
 NSDateComponents *comps = [[NSDateComponents alloc] init];
-[comps setYear:<%= date.year %>];
-[comps setMonth:<%= date.month %>];
-[comps setDay:<%= date.day %>];
+[comps setYear:2015];
+[comps setMonth:8];
+[comps setDay:14];
 NSCalendar *gregorian =
   [[NSCalendar alloc] initWithCalendarIdentifier:NSGregorianCalendar];
 NSDate *date = [gregorian dateFromComponents:comps];
@@ -391,7 +390,7 @@ NSDate *date = [gregorian dateFromComponents:comps];
 PFPush *push = [[PFPush alloc] init];
 [push expireAtDate:date];
 [push setQuery:everyoneQuery];
-[push setMessage:@"Season tickets on sale until <%= date.strftime("%B #{date.day.ordinalize}") %>"];
+[push setMessage:@"Season tickets on sale until August 8th!"];
 [push sendPushInBackground];
 ```
 ```swift
@@ -401,7 +400,6 @@ PFPush *push = [[PFPush alloc] init];
 There is however a caveat with this method. Since device clocks are not guaranteed to be accurate, you may end up with inaccurate results. For this reason, the `PFPush` class also provides the `expireAfterTimeInterval:` method which accepts an `NSTimeInterval` object. The notification will expire after the specified interval has elapsed.
 
 ```objc
-  <% date = 1.weeks.from_now %>
 // Create time interval
 NSTimeInterval interval = 60*60*24*7; // 1 week
 
@@ -409,7 +407,7 @@ NSTimeInterval interval = 60*60*24*7; // 1 week
 PFPush *push = [[PFPush alloc] init];
 [push expireAfterTimeInterval:interval];
 [push setQuery:everyoneQuery];
-[push setMessage:@"Season tickets on sale until <%= date.strftime("%B #{date.day.ordinalize}") %>"];
+[push setMessage:@"Season tickets on sale until next week!"];
 [push sendPushInBackground];
 ```
 ```swift
