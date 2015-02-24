@@ -1020,7 +1020,7 @@ image.crop({
 
 You can also resize an image, scaling the graphic using interpolation. Images can be made either smaller or larger. Just specify the new width and height. If you leave either off, it will assume the current image size.
 
-  ```js
+```js
 // Resize the image to 64x64.
 image.scale({
   width: 64,
@@ -1032,11 +1032,11 @@ image.scale({
     // The image could not be scaled.
   }
 });
-  ```
+```
 
 Sometimes it's more convenient to specify a ratio to resize to, instead of absolute dimensions.
 
-  ```js
+```js
 // Resize the image to 25% of its original size.
 image.scale({
   ratio: 0.25,
@@ -1047,13 +1047,13 @@ image.scale({
     // The image could not be scaled.
   }
 });
-  ```
+```
 
 #### Changing Image Formats
 
 You can even change the file format of an image file. For example, you may want to convert a file to a JPEG to reduce file size and bandwidth usage.
 
-  ```js
+```js
 // Change the image to be a JPEG.
 image.setFormat("JPEG", {
   success: function(image) {
@@ -1063,13 +1063,13 @@ image.setFormat("JPEG", {
     // The image could not be reformatted.
   }
 });
-  ```
+```
 
-### Image Thumbnail Example
+#### Image Thumbnail Example
 
 Every `Image` method returns a [`Parse.Promise`](/docs/js_guide#promises) in addition to having callbacks. This makes it easy to chain together multiple operations. Consider the common case where a user supplies an image to use for their profile. It's nice to be able to automatically generate a thumbnail of that photo to use in some of your UI. This can be done using a `beforeSave` handler.
 
-  ```js
+```js
 var Image = require("parse-image");
 
 Parse.Cloud.beforeSave("_User", function(request, response) {
@@ -1133,7 +1133,7 @@ Parse.Cloud.beforeSave("_User", function(request, response) {
     response.error(error);
   });
 });
-  ```
+```
 
 ### SendGrid
 
