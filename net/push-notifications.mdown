@@ -317,9 +317,84 @@ await winPhonePush.SendAsync();
 
 ## Receiving Pushes
 
-<div class="callout_green">
-  Recieving pushes is only available on Windows.
-</div>
+### Responding to the Payload
+
+If your app is running while a push notification is received, the `ParsePush.PushNotificationReceived` event is fired. You can register for this event. This event provides the standard [`PushNotificationEventArgs`](http://msdn.microsoft.com/en-us/library/windows/apps/windows.networking.pushnotifications.pushnotificationreceivedeventargs). When Parse sends a toast notification, it embeds the JSON payload in the notification. You can extract this JSON payload with `ParsePush.PushJson`.
+
+```csharp
+ParsePush.ToastNotificationReceived += (sender, args) => {
+  var json = ParsePush.PushJson(args);
+  object objectId;
+  if (json.TryGetValue("objectId", out objectId)) {
+    DisplayRichMessageWithObjectId(objectId as string);
+  }
+};
+```
+
+In Windows 8, you may also receive the JSON payload from the `LaunchActivatedEventArgs` passed to your application's `OnLaunched` event.
+
+```csharp
+protected override void OnLaunched(LaunchActivatedEventArgs args) {
+  var json = ParsePush.PushJson(args);
+  object objectId;
+  if (json.TryGetValue("objectId", out objectId)) {
+    DisplayRichMessageWithObjectId(objectId as string);
+  }
+};
+```
+
+In Windows Phone 8, this code would instead be in your page's OnNavigatedTo event:
+
+```csharp
+public override void OnNavigatedTo(NavigationEventArgs args) {
+  var json = ParsePush.PushJson(args);
+  object objectId;
+  if (json.TryGetValue("objectId", out objectId)) {
+    DisplayRichMessageWithObjectId(objectId as string);
+  }
+}
+```
+
+### Tracking Pushes and App Opens
+
+To track your users' engagement over time and the effect of push notifications, we provide some hooks in the `ParseAnalytics` class. In the example above, add the following to your Launching event handler to collect information about when your application was opened, and what triggered it.
+
+```csharp
+ParseAnalytics.TrackAppOpenedAsync(launchArgs);
+```
+
+To track push opens, you should always pass your event handler's input args to `TrackAppOpenedAsync`.  A null or empty parameter to `TrackAppOpenedAsync` will track _only_ a standard app-opened event, not the push-opened event. If you don't track the push-opened event, you will not be able to use advanced analytics features such as push-open graphs and A/B testing.
+
+Please be sure to set up your application to [save the Installation object](#installations/.NET) Push open tracking only works when your application's devices are associated with saved `Installation` objects.
+
+You can view the open rate for a specific push notification on your Parse.com push console. You can also view your application's overall app open and push open graphs on the Parse analytics console.  Our push open analytics graphs are rendered in real time, so you can easily verify that your application is sending the correct analytics events before your next release.
+
+#### Tracking on WinRT Applications
+
+On Windows 8, a toast notification can pass a small payload to the launch handler. We take advantage of this to pass a small Parse payload to the app, in order to correlate an app launch with a particular push.
+
+```csharp
+// Override Application.OnLaunched
+virtual void OnLaunched(LaunchActivatedEventArgs args) {
+    // 'args' contains arguments that are passed to the app
+    // during its launch activation from a Toast.
+    // More on Toasts: http://msdn.microsoft.com/en-us/library/windows/apps/hh779727.aspx
+    ParseAnalytics.TrackAppOpenedAsync(args);
+}
+```
+
+#### Tracking on Windows Phone Applications
+
+You can also track application launches from toast notifications in Windows Phone 8.
+    To track application launches from toasts and tiles, add the following to your App constructor:
+
+```csharp
+this.Startup += (sender, args) => {
+  ParseAnalytics.TrackAppOpens(RootFrame);
+};
+```
+
+This method will set up event handlers necessary to track all app launches; you should not use `TrackAppOpenedAsync` if you register event handlers with `TrackAppOpens`.
 
 ## Push Experiments
 
