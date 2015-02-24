@@ -20,19 +20,19 @@ The Parse Android SDK chooses a reasonable default configuration so that you do 
 
 However, as an advanced feature for developers that want to send pushes from multiple push providers, Parse allows you to optionally register your app for pushes with additional GCM sender IDs. To do this, specify the additional GCM sender ID with the following `<meta-data>` tag as a child of the `<application>` element in your app's `AndroidManifest.xml`:
 
-  ```java
+```java
 <meta-data android:name="com.parse.push.gcm_sender_id"
            android:value="id:YOUR_SENDER_ID" />;
-  ```
+```
 
 In the sample snippet above, `YOUR_SENDER_ID` should be replaced by a numeric GCM sender ID. Note that the Parse SDK expects you to prefix your sender ID with an `id:` prefix, as shown in the sample snippet.
 
 If you want to register your app with multiple additional sender IDs, then the `android:value` in the `<meta-data>` element above should hold a comma-delimited list of sender IDs, as in the following snippet:
 
-  ```java
+```java
 <meta-data android:name="com.parse.push.gcm_sender_id"
            android:value="id:YOUR_SENDER_ID_1,YOUR_SENDER_ID_2,YOUR_SENDER_ID_3" />;
-  ```
+```
 
 ## Installations
 
@@ -43,7 +43,7 @@ In Android, `Installation` objects are available through the `ParseInstallation`
 ```java
 // Save the current Installation to Parse.
 ParseInstallation.getCurrentInstallation().saveInBackground();
-  ```
+```
 
 While it is possible to modify a `ParseInstallation` just like you would a `ParseObject`, there are several special fields that help manage and target devices.
 
@@ -83,10 +83,10 @@ A channel is identified by a string that starts with a letter and consists of al
 
 Subscribing to a channel can be done using a single method call. For example, in a baseball score app, we could do:
 
-  ```java
+```java
 // When users indicate they are Giants fans, we subscribe them to that channel.
 ParsePush.subscribeInBackground("Giants"); 
-  ```
+```
 
 By default, the main activity for your app will be run when a user responds to notifications.
 
@@ -96,16 +96,16 @@ Once subscribed to the "Giants" channel, your `Installation` object should have 
 
 Unsubscribing from a channel is just as easy:
 
-  ```java
+```java
 // When users indicate they are no longer Giants fans, we unsubscribe them.
 ParsePush.unsubscribeInBackground("Giants");
-  ```
+```
 
 You can also get the set of channels that the current device is subscribed to using:
 
-  ```java
+```java
 List<String> subscribedChannels = ParseInstallation.getCurrentInstallation().getList("channels");
-  ```
+```
 
 Neither the subscribe method nor the unsubscribe method blocks the thread it is called from. The subscription information is cached on the device's disk if the network is inaccessible and transmitted to the Parse Cloud as soon as the network is usable. This means you don't have to worry about threading or callbacks while managing subscriptions.
 
@@ -113,16 +113,16 @@ Neither the subscribe method nor the unsubscribe method blocks the thread it is 
 
 In the Android SDK, the following code can be used to alert all subscribers of the "Giants" channel that their favorite team just scored. This will display a notification center alert to iOS users and a system tray notification to Android users.
 
-  ```java
+```java
 ParsePush push = new ParsePush();
 push.setChannel("Giants");
 push.setMessage("The Giants just scored! It's now 2-2 against the Mets.");
 push.sendInBackground();
-  ```
+```
 
 If you want to target multiple channels with a single push notification, you can use a `LinkedList` of channels.
 
-  ```java
+```java
 LinkedList<String> channels = new LinkedList<String>();
 channels.add("Giants");
 channels.add("Mets");
@@ -131,7 +131,7 @@ ParsePush push = new ParsePush();
 push.setChannels(channels); // Notice we use setChannels not setChannel
 push.setMessage("The Giants won against the Mets 2-3.");
 push.sendInBackground();
-  ```
+```
 
 ### Using Advanced Targeting
 
@@ -150,22 +150,22 @@ installation.put("scores",true);
 installation.put("gameResults",true);
 installation.put("injuryReports",true);
 installation.saveInBackground();
-  ```
+```
 
 You can even create relationships between your `Installation` objects and other classes saved on Parse. To associate an Installation with a particular user, for example, you can simply store the current user on the `ParseInstallation`.
 
-  ```java
+```java
 // Associate the device with a user
 ParseInstallation installation = ParseInstallation.getCurrentInstallation();
 installation.put("user",ParseUser.getCurrentUser());
 installation.saveInBackground();
-  ```
+```
 
 #### Sending Pushes to Queries
 
 Once you have your data stored on your `Installation` objects, you can use a `PFQuery` to target a subset of these devices. `Installation` queries work just like any other [Parse query](/docs/android_guide#queries), but we use the special static method `ParseInstallation.getQuery()` to create it. We set this query on our `PFPush` object, before sending the notification.
 
-  ```java
+```java
 // Create our Installation query
 ParseQuery pushQuery = ParseInstallation.getQuery();
 pushQuery.whereEqualTo("injuryReports", true);
@@ -175,7 +175,7 @@ ParsePush push = new ParsePush();
 push.setQuery(pushQuery); // Set our Installation query
 push.setMessage("Willie Hayes injured by own pop fly.");
 push.sendInBackground();
-  ```
+```
 
 We can even use channels with our query. To send a push to all subscribers of the "Giants" channel but filtered by those who want score update, we can do the following:
 
@@ -190,11 +190,11 @@ ParsePush push = new ParsePush();
 push.setQuery(pushQuery);
 push.setMessage("Giants scored against the A's! It's now 2-2.");
 push.sendInBackground();
-  ```
+```
 
 If we store relationships to other objects in our `Installation` class, we can also use those in our query. For example, we could send a push notification to all users near a given location like this.
 
-  ```java
+```java
 // Find users near a given location
 ParseQuery userQuery = ParseUser.getQuery();
 userQuery.whereWithinMiles("location", stadiumLocation, 1.0)
@@ -208,7 +208,7 @@ ParsePush push = new ParsePush();
 push.setQuery(pushQuery); // Set our Installation query
 push.setMessage("Free hotdogs at the Parse concession stand!");
 push.sendInBackground();
-  ```
+```
 
 ## Sending Options
 
@@ -224,7 +224,7 @@ If you want to send more than just a message, you will need to use a `JSONObject
 
 For example, to send a notification that would increases the badge number by 1 and plays a custom sound, you can do the following. Note that you can set these properties from your Android client, but they would only take effect in the iOS version of your app. The badge and sound fields would have no effects for Android recipients.
 
-  ```java
+```java
 JSONObject data = new JSONObject("{\"alert\": \"The Mets scored!\",
                                    \"badge\": \"Increment\",
                                    \"sound\": \"cheering.caf\"}");
@@ -233,11 +233,11 @@ ParsePush push = new ParsePush();
 push.setChannel("Mets");
 push.setData(data);
 push.sendPushInBackground();
-  ```
+```
 
 It is also possible to specify your own data in this dictionary. As we'll see in the [Receiving Notifications](#receiving/Android) section, you're able to use the data sent with your push to do custom processing when  a user receives and interacts with a notification.
 
-  ```java
+```java
 JSONObject data = new JSONObject("{\"name\": \"Vaughn\",
                                    \"newsItem\": \"Man bites dog\"}"));
 
@@ -246,7 +246,7 @@ push.setQuery(injuryReportsQuery);
 push.setChannel("Indians");
 push.setData(data);
 push.sendPushInBackground();
-  ```
+```
 
 ### Setting an Expiration Date
 
@@ -254,18 +254,18 @@ When a user's device is turned off or not connected to the internet, push notifi
 
 There are two methods provided by the `ParsePush` class to allow setting an expiration date for your notification. The first is `setExpirationTime` which simply takes an `time` (in UNIX epoch time) specifying when Parse should stop trying to send the notification.
 
-  ```java
+```java
 // Send push notification with expiration date
 ParsePush push = new ParsePush();
 push.setExpirationTime(1424841505);
 push.setQuery(everyoneQuery);
 push.setMessage("Season tickets on sale until February 25th");
 push.sendPushInBackground();
-  ```
+```
 
 There is however a caveat with this method. Since device clocks are not guaranteed to be accurate, you may end up with inaccurate results. For this reason, the `ParsePush` class also provides the `setExpirationTimeInterval` method which accepts a `timeInterval` (in seconds). The notification will expire after the specified interval has elapsed.
 
-  ```java
+```java
 // Create time interval
 long weekInterval = 60*60*24*7; // 1 week
 
@@ -275,7 +275,7 @@ push.setExpirationTimeInterval(weekInterval);
 push.setQuery(everyoneQuery);
 push.setMessage("Season tickets on sale until next week!");
 push.sendPushInBackground();
-  ```
+```
 
 ### Targeting by Platform
 
@@ -314,7 +314,7 @@ ParsePush wpPush = new ParsePush();
 wpPush.setMessage("Your suitcase is very hip; very metro.");
 wpPush.setQuery(query);
 wpPush.sendPushInBackground();
-  ```
+```
 
 ## Scheduling Pushes
 
@@ -342,9 +342,9 @@ Note that some Android emulators (the ones missing Google API support) don't sup
 
 The [Android style guide](http://developer.android.com/design/style/iconography.html#notification) recommends apps use a push icon that is monochromatic and flat. The default push icon is your application's launcher icon, which is unlikely to conform to the style guide. To provide a custom push icon, add the following metadata tag to your app's AndroidManifest.xml:
 
-  ```java
+```java
 <meta-data android:name="com.parse.push.notification_icon" android:resource="@drawable/push_icon"/>
-  ```
+```
 
 where `push_icon` is the name of a drawable resource in your package. If your application needs more than one small icon, you can override `getSmallIconId` in your `ParsePushBroadcastReceiver` subclass.
 
@@ -372,9 +372,9 @@ All of the above methods may be subclassed to customize the way your application
 
 The default implementation of `onPushOpen` will automatically track user engagment from pushes. If you choose not to use the `ParsePushBroadcastReceiver` or override the `onPushOpen` implementation, you may need to track your app open event manually. To do this, add the following to the `onCreate` method of the `Activity` or the `onReceive` method of the `BroadcastReceiver` which handles the `com.parse.push.intent.OPEN` Intent:
 
-  ```java
+```java
 ParseAnalytics.trackAppOpened(getIntent());
-  ```
+```
 
 To track push opens, you should always pass the `Intent` to `trackAppOpened`. Passing null to `trackAppOpened` will track _only_ a standard app-opened event, not the push-opened event. If you don't track the push-opened event, you will not be able to use advanced analytics features such as push-open graphs and A/B testing.
 
