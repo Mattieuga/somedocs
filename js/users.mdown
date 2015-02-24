@@ -313,7 +313,7 @@ If you encounter issues that look like they're being returned from Parse's serve
 
 There are two main ways to use Facebook with your Parse users: (1) logging in as a Facebook user and creating a `Parse.User`, or (2) linking Facebook to an existing `Parse.User`.
 
-## Login & Signup
+### Login & Signup
 
 `Parse.FacebookUtils` provides a way to allow your `Parse.User`s to log in or sign up through Facebook. This is accomplished using the `logIn()` method:
 
@@ -359,7 +359,7 @@ Parse.FacebookUtils.logIn("user_likes,email", {
 </div>
 
 
-## Linking
+### Linking
 
 If you want to associate an existing `Parse.User` to a Facebook account, you can link it like so:
 
@@ -388,7 +388,7 @@ Parse.FacebookUtils.unlink(user, {
 });
 ```
 
-## Facebook SDK and Parse
+### Facebook SDK and Parse
 
 The Facebook Javascript SDK provides a main `FB` object that is the starting point for many of the interactions with Facebook's API. [You can read more about their SDK here](https://developers.facebook.com/docs/reference/javascript/).
 
