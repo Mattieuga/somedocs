@@ -8,7 +8,7 @@ There are four ways to build relationships in Parse:
 
 When you’re thinking about one-to-many relationships and whether to implement Pointers or Arrays, there are several factors to consider. First, how many objects are involved in this relationship? If the "many" side of the relationship could contain a very large number (greater than 100 or so) of objects, then you have to use Pointers. If the number of objects is small (fewer than 100 or so), then Arrays may be more convenient, especially if you typically need to get all of the related objects (the "many" in the "one-to-many relationship") at the same time as the parent object.
 
-### Using Pointers for One-to-Many Relationships
+### Using Pointers
 
 Let's say we have a game app. The game keeps track of the player's score and achievements every time she chooses to play. In Parse, we can store this data in a single `Game` object. If the game becomes incredibly successful, each player will store thousands of `Game` objects in the system. For circumstances like this, where the number of relationships can be arbitrarily large, Pointers are the best option.
 
@@ -89,7 +89,7 @@ PFUser *createdBy = [game objectForKey@"createdBy"];
 
 For most scenarios, Pointers will be your best bet for implementing one-to-many relationships.
 
-### Using Arrays for One-to-Many Relations
+### Using Arrays
 
 Arrays are ideal when we know that the number of objects involved in our one-to-many relationship are going to be small. Arrays will also provide some productivity benefit via the `includeKey` parameter. Supplying the parameter will enable you to obtain all of the "many" objects in the "one-to-many" relationship at the same time that you obtain the "one" object. However, the response time will be slower if the number of objects involved in the relationship turns out to be large.
 
@@ -248,7 +248,7 @@ The decision point here is whether you want to attach any metadata to the relati
 
 On the other hand, if you want to attach metadata to the relationship, then create a separate table (the "Join Table") to house both ends of the relationship. Remember, this is information **about the relationship**, not about the objects on either side of the relationship. Some examples of metadata you may be interested in, which would necessitate a Join Table approach, include:
 
-### Parse Relations
+### Using Parse Relations
 
 Using Parse Relations, we can create a relationship between a `Book` and a few `Author` objects. In the Data Browser, you can create a column on the `Book` object of type relation and name it `authors`.
 
@@ -509,7 +509,7 @@ PFQuery *query = [PFQuery queryWithClassName:@"Follow"];
 // no swift example
 ```
 
-### Using Arrays for Many-to-Many Relations
+### Using Arrays
 
 Arrays are used in Many-to-Many relationships in much the same way that they are for One-to-Many relationships. All objects on one side of the relationship will have an Array column containing several objects on the other side of the relationship.
 
