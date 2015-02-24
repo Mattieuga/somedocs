@@ -220,7 +220,6 @@ Parse.Cloud.run('averageStars', { movie: 'The Matrix' }, {
   }
 });
 ```
-</div>
 
 In general, two arguments will be passed into cloud functions:
 
