@@ -4,7 +4,7 @@ As your app development progresses, you will want to use Parse's security featur
 
 If your app is compromised, it's not only you as the developer who suffers, but potentially the users of your app as well. Continue reading for our suggestions for sensible defaults and precautions to take before releasing your app into the wild.
 
-### Connection Between Client and Server
+## Connection Between Client and Server
 
 When an app first connects to Parse, it identifies itself with an Application ID and a Client key (or REST Key, or .NET Key, or JavaScript Key, depending on which platform you're using). These are not secret and by themselves they do not secure an app. These keys are shipped as a part of your app, and anyone can decompile your app or proxy network traffic from their device to find your client key. This exploit is even easier with JavaScript — one can simply "view source" in the browser and immediately find your client key.
 
@@ -16,7 +16,7 @@ The overall philosophy is to limit the power of your clients (using client keys)
 
 A final note: All connections are made with HTTPS and SSL, and Parse will reject all non-HTTPS connections. As a result, you don't need to worry about man-in-the-middle attacks.
 
-### Class-Level Permissions
+## Class-Level Permissions
 
 The second level of security is at the schema and data level. Enforcing security measures at this level will restrict how and when client applications can access and create data on Parse. When you first begin developing your Parse application, all of the defaults are set so that you can be a more productive developer. For example:
 
@@ -30,13 +30,13 @@ Once you are confident that you have the right classes and relationships between
 
 Almost every class that you create should have these permissions tweaked to some degree. For classes where every object has the same permissions, class-level settings will be most effective. For example, one common use case entails having a class of static data that can be read by anyone but written by no one.
 
-#### Restrict class creation on Parse
+### Restrict class creation on Parse
 
 As a start, you can configure your application so that clients cannot create new classes on Parse. This is done from the Settings tab on the Data Browser. Scroll down to the **App Permissions** section and turn off **Allow client class creation**. Once enabled, classes may only be created from the Data Browser. This will prevent attackers from filling your database with unlimited, arbitrary new classes.
 
 ![](docs/security/client_class_creation.png)
 
-#### Configuring class-level permissions
+### Configuring class-level permissions
 
 Parse lets you specify what operations are allowed per class. This lets you restrict the ways in which clients can access or modify your classes. To change these settings, go to the Data Browser, select a class, open the "More" dropdown, and click the "Set permissions" item.
 
@@ -53,7 +53,7 @@ You can configure the client's ability to perform each of the following operatio
 
 For each of the above actions, you can grant permission to all users (which is the default), or lock permissions down to a list of roles and users. For example, a class that should be available to all users would be set to read-only by only enabling get and find. A logging class could be set to write-only by only allowing creates. You could enable moderation of user-generated content by providing update and delete access to a particular set of users or roles.
 
-### Object-Level Access Control
+## Object-Level Access Control
 
 Once you've locked down your schema and class-level permissions, it's time to think about how data is accessed by your users. Object-level access control enables one user's data to be kept separate from another's, because sometimes different objects in a class need to be accessible by different people. For example, a user’s private personal data should be accessible only to them.
 
@@ -61,7 +61,7 @@ Parse also supports the notion of anonymous users for those apps that want to st
 
 When a user logs into an app, they initiate a session with Parse. Through this session they can add and modify their own data but are prevented from modifying other users' data.
 
-#### Access Control Lists
+### Access Control Lists
 
 The easiest way to control who can access which data is through access control lists, commonly known as ACLs. The idea behind an ACL is that each object has a list of users and roles along with what permissions that user or role has. A user needs read permissions (or must belong to a role that has read permissions) in order to retrieve an object's data, and a user needs write permissions (or must belong to a role that has write permissions) in order to update or delete that object.
 
@@ -223,7 +223,7 @@ And here's another example of the format of an ACL that uses a Role:
 { "role:RoleName":{"read":true}, "SaMpLeUsErId":{"write":true,"read":true} }
 ```
 
-### Data Integrity in Cloud Code
+## Data Integrity in Cloud Code
 
 For most apps, care around keys, class-level permissions, and object-level ACLs are all you need to keep your app and your users' data safe. Sometimes, though, you'll run into an edge case where they aren't quite enough. For everything else, there's [Cloud Code](/docs/cloud_code_guide).
 
@@ -255,7 +255,7 @@ Common scenarios that warrant validation include:
 *   Not letting users directly change a calculated field
 *   Not letting users delete specific objects unless certain conditions are met
 
-### Implementing Business Logic in Cloud Code
+## Implementing Business Logic in Cloud Code
 
 While validation often makes sense in Cloud Code, there are likely certain actions that are particularly sensitive, and should be as carefully guarded as possible. In these cases, you can remove permissions or the logic from clients entirely and instead funnel all such operations to Cloud Code functions.
 
@@ -289,7 +289,7 @@ Parse.Cloud.define("like", function(request, response) {
 One very common use case for Cloud Code is sending push notifications to particular users. In general, clients can't be trusted to send push notifications directly, because they could modify the alert text, or push to people they shouldn't be able to. Your app's settings will allow you to set whether "client push" is enabled or not; we recommend that you make sure it's disabled. Instead, you should write Cloud Code functions that validate the data to be pushed and sender before sending a push.
  <%= anchor "security-summary", :minor %>
 
-### Parse Security Summary
+## Parse Security Summary
 
 Parse provides a number of ways for you to secure data in your app. As you build your app and evaluate the kinds of data you will be storing, you can make the decision about which implementation to choose.
 
