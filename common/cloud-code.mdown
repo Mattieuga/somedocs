@@ -89,6 +89,7 @@ $ parse deploy
 To run this function once it's deployed, run:
 
 <div class="common-code-blocks">
+
 ```java
 ParseCloud.callFunctionInBackground("hello", new HashMap<String, Object>(), new FunctionCallback<String>() {
   void done(String result, ParseException e) {
@@ -126,6 +127,7 @@ Parse.Cloud.run('hello', {}, {
   }
 });
 ```
+
 </div>
 
 You should see this response:
