@@ -240,7 +240,7 @@ That is all you need to do to get a functional sign up screen.
 
 ### Configuring the Sign Up Elements
 
-![Signup Diagram](/images/docs/signup_diagram.png) All elements of the PFSignUpViewController
+![Signup Diagram](/images/docs/signup_diagram.png)
 
 `PFSignUpViewController` can be configured to provide a variety of sign up options. By default, it presents the following UI:
 
@@ -296,6 +296,7 @@ Besides the delegate pattern, the `PFSignUpViewController` also supports `NSNoti
 ### Customizing the Logo and Background Image
 
 You might want to use your own logo or background image. You can achieve this by subclassing `PFSignUpViewController` and overriding `viewDidLoad`:
+
 ```objc
 @interface MySignUpViewController : PFSignUpViewController
 
@@ -325,7 +326,6 @@ class MySignUpViewController : PFSignUpViewController {
     let logoView = UIImageView(image: UIImage(named: "logo.png"))
     self.signUpView.logo = logoView // 'logo' can be any UIView
   }
-
 }
 ```
 
@@ -548,9 +548,7 @@ Pagination is turned on by default. If you want to turn it off, simply set `pagi
 
 ### Pull to Refresh
 
-<div class="right_pic">
-  ![](/images/docs/pull_to_refresh.png)
-</div>
+![](/images/docs/pull_to_refresh.png)
 
 Pull to Refresh is a feature that allows users to pull the table down and release to reload the data. Essentially, the first page of data is reloaded from your class and the table is cleared and updated with the data.
 
@@ -631,7 +629,7 @@ Say, you would like to customize the error message in `PFSignUpViewController` t
 
 Included in  the Parse SDK is a file named `Localizable.string` which includes all the localizable keys in the Parse framework. Browsing this file, developers can find the key for the string they would like to customize. You notice that the string `"The email address \"%@\" is invalid. Please enter a valid email."` is a key in the file. In your own `Localizable.strings`, you can then enter:
 
-```json
+```js
 "The email address \"%@\" is invalid. Please enter a valid email." = "Wrong email: \"%@\"";
 ```
 

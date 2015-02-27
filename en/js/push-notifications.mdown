@@ -245,7 +245,6 @@ When a user's device is turned off or not connected to the internet, push notifi
 There are two parameters provided by Parse to allow setting an expiration date for your notification. The first is `expiration_time` which takes a `Date` specifying when Parse should stop trying to send the notification. To expire the notification exactly 1 week from now, you can use the following:
 
 ```js
-
 var oneWeekAway = new Date(...);
 
 Parse.Push.send({
@@ -274,8 +273,8 @@ Parse.Push.send({
   push_time: oneDayAway,
   expiration_interval: sixDaysAwayEpoch,
   data: {
-    alert: "Season tickets on sale until next week!" %>"
-
+    alert: "Season tickets on sale until next week!"
+  }
 }, {
   success: function() {
     // Push was successful

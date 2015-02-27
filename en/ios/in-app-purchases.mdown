@@ -69,8 +69,7 @@ Many IAP products such as books and movies have associated content files that sh
  3.  `title:` the title to be displayed in `PFProductTableViewController`
  4.  `subtitle:` the subtitle to be displayed in `PFProductTableViewController`
  5.  `order`: the order this product should appear in `PFProductTableViewController`. This is used only in `PFProductTableViewController`; fill in 0 if the order is not important,
- 6.  `download`: the downloadable content file
-Note that the file uploaded in `download` is not publicly accessible, and only becomes available for download when a purchase is made. `downloadName` is the name of the file on disk once downloaded. You don't need to fill this in.
+ 6.  `download`: the downloadable content file. Note that the file uploaded in `download` is not publicly accessible, and only becomes available for download when a purchase is made. `downloadName` is the name of the file on disk once downloaded. You don't need to fill this in.
 3.  Next, you need to register the product handler:
 ```objc
 [PFPurchase addObserverForProduct:@"Pro" block:^(SKPaymentTransaction *transaction) {
@@ -82,7 +81,8 @@ Note that the file uploaded in `download` is not publicly accessible, and only b
 // no swift example
 ```
 Note that this does not make the purchase, but simply registers a block to be run if a purchase is made later. The call to `downloadAssetForTransaction:completion:` passes the receipt of the purchase to the Parse Cloud, which then verifies with Apple that the purchase was made. Once the receipt is verified, the purchased file is downloaded.
-4.  To make the purchase,
+
+To make the purchase:
 ```objc
 [PFPurchase buyProduct:@"Pro" block:^(NSError *error) {
     if (!error) { 

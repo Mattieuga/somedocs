@@ -101,9 +101,7 @@ currentInstallation.saveInBackground()
 
 Once subscribed to the "Giants" channel, your `Installation` object should have an updated `channels` field.
 
-<div class="left_pic">
-	![](/images/docs/installation_channel.png)
-</div>
+![](/images/docs/installation_channel.png)
 
 Unsubscribing from a channel is just as easy:
 
@@ -554,7 +552,8 @@ if (application.applicationState != UIApplicationStateBackground) {
   BOOL preBackgroundPush = ![application respondsToSelector:@selector(backgroundRefreshStatus)];
   BOOL oldPushHandlerOnly = ![self respondsToSelector:@selector(application:didReceiveRemoteNotification:fetchCompletionHandler:)];
   BOOL noPushPayload = ![launchOptions objectForKey:UIApplicationLaunchOptionsRemoteNotificationKey];
-  if (preBackgroundPush || oldPushHandlerOnly || noPushPayload) { [PFAnalytics trackAppOpenedWithLaunchOptions:launchOptions];
+  if (preBackgroundPush || oldPushHandlerOnly || noPushPayload) { 
+  	[PFAnalytics trackAppOpenedWithLaunchOptions:launchOptions];
   }
 }
 ```
@@ -566,7 +565,8 @@ if application.applicationState != UIApplicationState.Background {
   // counting the app-open.
   let oldPushHandlerOnly = !self.respondsToSelector(Selector("application:didReceiveRemoteNotification:fetchCompletionHandler:"))
   let noPushPayload: AnyObject? = launchOptions?[UIApplicationLaunchOptionsRemoteNotificationKey]?
-  if oldPushHandlerOnly || noPushPayload != nil { PFAnalytics.trackAppOpenedWithLaunchOptions(launchOptions)
+  if oldPushHandlerOnly || noPushPayload != nil { 
+  	PFAnalytics.trackAppOpenedWithLaunchOptions(launchOptions)
   }
 }
 ```
@@ -575,8 +575,11 @@ Second, if your application is running or backgrounded, the `application:didRece
 
 ```objc
 - (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo {
-  if (application.applicationState == UIApplicationStateInactive) { // The application was just brought from the background to the foreground, // so we consider the app as having been "opened by a push notification." [PFAnalytics trackAppOpenedWithRemoteNotificationPayload:userInfo];
-  }
+	if (application.applicationState == UIApplicationStateInactive) { 
+		// The application was just brought from the background to the foreground, 
+		// so we consider the app as having been "opened by a push notification." 
+		[PFAnalytics trackAppOpenedWithRemoteNotificationPayload:userInfo];
+	}
 }
 ```
 ```swift
